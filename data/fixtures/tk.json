@@ -1,0 +1,35 @@
+{
+  "synthetic": true,
+  "records": [
+    {
+      "id": "TK-TEST-1",
+      "evidence": {
+        "id": "TK-TEST-1",
+        "title": "Synthetic TK fixture 1 — not TKDL",
+        "excerpt": "SYNTHETIC TEST RECORD: turmeric and neem in a decoction for wound healing.",
+        "locator": "data/fixtures/tk.json#TK-TEST-1",
+        "mode": "mock"
+      }
+    },
+    {
+      "id": "TK-TEST-2",
+      "evidence": {
+        "id": "TK-TEST-2",
+        "title": "Synthetic TK fixture 2 — not TKDL",
+        "excerpt": "SYNTHETIC TEST RECORD: ginger, boiling and digestion.",
+        "locator": "data/fixtures/tk.json#TK-TEST-2",
+        "mode": "mock"
+      }
+    },
+    {
+      "id": "TK-TEST-3",
+      "evidence": {
+        "id": "TK-TEST-3",
+        "title": "Synthetic TK fixture 3 — not TKDL",
+        "excerpt": "SYNTHETIC TEST RECORD: aloe vera extraction for skin care.",
+        "locator": "data/fixtures/tk.json#TK-TEST-3",
+        "mode": "mock"
+      }
+    }
+  ]
+}

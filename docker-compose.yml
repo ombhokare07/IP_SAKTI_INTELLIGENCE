@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.backend
+      args:
+        INSTALL_FULL: "false"
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - app_data:/app/data/runtime
+      - chroma_data:/app/chroma_db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+  frontend:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  app_data:
+  chroma_data:

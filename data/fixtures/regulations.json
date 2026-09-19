@@ -1,0 +1,353 @@
+{
+  "synthetic": true,
+  "versions": [
+    {
+      "regulation_id": "REG-TEST-IN",
+      "version": "fixture-1",
+      "jurisdiction": "IN",
+      "product_category": "herbal_product",
+      "title": "Synthetic IN product checklist",
+      "effective_from": "2025-01-01",
+      "published_at": "2025-01-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-IN-v1",
+        "title": "Synthetic IN test specification v1",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include manufacturer.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-IN-v1",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "manufacturer",
+          "field": "manufacturer",
+          "label": "Manufacturer",
+          "description": "Test requirement for manufacturer.",
+          "source_excerpt": "Test submissions must include manufacturer."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-IN",
+      "version": "fixture-2",
+      "jurisdiction": "IN",
+      "product_category": "herbal_product",
+      "title": "Synthetic IN product checklist",
+      "effective_from": "2025-02-01",
+      "published_at": "2025-02-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-IN-v2",
+        "title": "Synthetic IN test specification v2",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include manufacturer.\nTest submissions must include batch reference.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-IN-v2",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "manufacturer",
+          "field": "manufacturer",
+          "label": "Manufacturer",
+          "description": "Test requirement for manufacturer.",
+          "source_excerpt": "Test submissions must include manufacturer."
+        },
+        {
+          "id": "batch_reference",
+          "field": "batch_reference",
+          "label": "Batch reference",
+          "description": "Test requirement for batch reference.",
+          "source_excerpt": "Test submissions must include batch reference."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-US",
+      "version": "fixture-1",
+      "jurisdiction": "US",
+      "product_category": "herbal_product",
+      "title": "Synthetic US product checklist",
+      "effective_from": "2025-01-01",
+      "published_at": "2025-01-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-US-v1",
+        "title": "Synthetic US test specification v1",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include manufacturer.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-US-v1",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "manufacturer",
+          "field": "manufacturer",
+          "label": "Manufacturer",
+          "description": "Test requirement for manufacturer.",
+          "source_excerpt": "Test submissions must include manufacturer."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-US",
+      "version": "fixture-2",
+      "jurisdiction": "US",
+      "product_category": "herbal_product",
+      "title": "Synthetic US product checklist",
+      "effective_from": "2025-02-01",
+      "published_at": "2025-02-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-US-v2",
+        "title": "Synthetic US test specification v2",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include manufacturer.\nTest submissions must include batch reference.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-US-v2",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "manufacturer",
+          "field": "manufacturer",
+          "label": "Manufacturer",
+          "description": "Test requirement for manufacturer.",
+          "source_excerpt": "Test submissions must include manufacturer."
+        },
+        {
+          "id": "batch_reference",
+          "field": "batch_reference",
+          "label": "Batch reference",
+          "description": "Test requirement for batch reference.",
+          "source_excerpt": "Test submissions must include batch reference."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-EU",
+      "version": "fixture-1",
+      "jurisdiction": "EU",
+      "product_category": "herbal_product",
+      "title": "Synthetic EU product checklist",
+      "effective_from": "2025-01-01",
+      "published_at": "2025-01-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-EU-v1",
+        "title": "Synthetic EU test specification v1",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include safety summary.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-EU-v1",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "safety_summary",
+          "field": "safety_summary",
+          "label": "Safety summary",
+          "description": "Test requirement for safety summary.",
+          "source_excerpt": "Test submissions must include safety summary."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-EU",
+      "version": "fixture-2",
+      "jurisdiction": "EU",
+      "product_category": "herbal_product",
+      "title": "Synthetic EU product checklist",
+      "effective_from": "2025-02-01",
+      "published_at": "2025-02-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-EU-v2",
+        "title": "Synthetic EU test specification v2",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include safety summary.\nTest submissions must include batch reference.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-EU-v2",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "safety_summary",
+          "field": "safety_summary",
+          "label": "Safety summary",
+          "description": "Test requirement for safety summary.",
+          "source_excerpt": "Test submissions must include safety summary."
+        },
+        {
+          "id": "batch_reference",
+          "field": "batch_reference",
+          "label": "Batch reference",
+          "description": "Test requirement for batch reference.",
+          "source_excerpt": "Test submissions must include batch reference."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-UK",
+      "version": "fixture-1",
+      "jurisdiction": "UK",
+      "product_category": "herbal_product",
+      "title": "Synthetic UK product checklist",
+      "effective_from": "2025-01-01",
+      "published_at": "2025-01-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-UK-v1",
+        "title": "Synthetic UK test specification v1",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include safety summary.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-UK-v1",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "safety_summary",
+          "field": "safety_summary",
+          "label": "Safety summary",
+          "description": "Test requirement for safety summary.",
+          "source_excerpt": "Test submissions must include safety summary."
+        }
+      ]
+    },
+    {
+      "regulation_id": "REG-TEST-UK",
+      "version": "fixture-2",
+      "jurisdiction": "UK",
+      "product_category": "herbal_product",
+      "title": "Synthetic UK product checklist",
+      "effective_from": "2025-02-01",
+      "published_at": "2025-02-01",
+      "mode": "mock",
+      "evidence": {
+        "id": "REG-TEST-UK-v2",
+        "title": "Synthetic UK test specification v2",
+        "excerpt": "SYNTHETIC TEST SPECIFICATION. This is not a law or regulation.\nTest submissions must include product name.\nTest submissions must include ingredients.\nTest submissions must include safety summary.\nTest submissions must include batch reference.",
+        "locator": "data/fixtures/regulations.json#REG-TEST-UK-v2",
+        "mode": "mock"
+      },
+      "requirements": [
+        {
+          "id": "product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Test requirement for product name.",
+          "source_excerpt": "Test submissions must include product name."
+        },
+        {
+          "id": "ingredients",
+          "field": "ingredients",
+          "label": "Ingredients",
+          "description": "Test requirement for ingredients.",
+          "source_excerpt": "Test submissions must include ingredients."
+        },
+        {
+          "id": "safety_summary",
+          "field": "safety_summary",
+          "label": "Safety summary",
+          "description": "Test requirement for safety summary.",
+          "source_excerpt": "Test submissions must include safety summary."
+        },
+        {
+          "id": "batch_reference",
+          "field": "batch_reference",
+          "label": "Batch reference",
+          "description": "Test requirement for batch reference.",
+          "source_excerpt": "Test submissions must include batch reference."
+        }
+      ]
+    }
+  ]
+}

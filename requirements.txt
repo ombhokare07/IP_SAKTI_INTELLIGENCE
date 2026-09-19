@@ -1,0 +1,11 @@
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+# Pydantic declares the exact compatible pydantic-core native wheel.
+pydantic==2.13.5
+pydantic-settings==2.15.0
+google-genai==1.75.0
+PyMuPDF==1.26.6
+sentence-transformers>=3,<6
+chromadb==1.5.9
+pytest==8.4.2
+httpx[socks]==0.28.1

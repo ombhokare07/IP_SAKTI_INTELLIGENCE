@@ -1,0 +1,10 @@
+# Tested top-level versions. No language/embedding model download is needed for the test suite.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic-settings==2.15.0
+pydantic==2.13.5
+httpx[socks]==0.28.1
+google-genai==1.75.0
+PyMuPDF==1.26.6
+chromadb==1.5.9
+pytest==8.4.2

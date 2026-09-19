@@ -1,0 +1,12 @@
+.git
+.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest*
+**/.codex-test-temp*
+**/.env
+**/.env.local
+chroma_db
+data/runtime
+*.zip

@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "scope": "Terminology only; plant names are candidate normalizations, not identity, efficacy or safety verification.",
+  "terms": [
+    {
+      "canonical": "turmeric",
+      "botanical": "Curcuma longa",
+      "hi": "हल्दी",
+      "mr": "हळद",
+      "aliases": [
+        "turmeric",
+        "Curcuma longa",
+        "हल्दी",
+        "हळद",
+        "haridra",
+        "हरिद्रा"
+      ]
+    },
+    {
+      "canonical": "neem",
+      "botanical": "Azadirachta indica",
+      "hi": "नीम",
+      "mr": "कडुनिंब",
+      "aliases": [
+        "neem",
+        "Azadirachta indica",
+        "नीम",
+        "कडुनिंब",
+        "nimba",
+        "निंब"
+      ]
+    },
+    {
+      "canonical": "aloe vera",
+      "botanical": "Aloe vera",
+      "hi": "घृतकुमारी",
+      "mr": "कोरफड",
+      "aliases": [
+        "aloe vera",
+        "Aloe vera",
+        "घृतकुमारी",
+        "कोरफड",
+        "kumari",
+        "कुमारी"
+      ]
+    },
+    {
+      "canonical": "ashwagandha",
+      "botanical": "Withania somnifera",
+      "hi": "अश्वगंधा",
+      "mr": "अश्वगंधा",
+      "aliases": [
+        "ashwagandha",
+        "Withania somnifera",
+        "अश्वगंधा",
+        "अश्वगंधा"
+      ]
+    },
+    {
+      "canonical": "tulsi",
+      "botanical": "Ocimum tenuiflorum",
+      "hi": "तुलसी",
+      "mr": "तुळस",
+      "aliases": [
+        "tulsi",
+        "Ocimum tenuiflorum",
+        "तुलसी",
+        "तुळस",
+        "holy basil"
+      ]
+    },
+    {
+      "canonical": "ginger",
+      "botanical": "Zingiber officinale",
+      "hi": "अदरक",
+      "mr": "आले",
+      "aliases": [
+        "ginger",
+        "Zingiber officinale",
+        "अदरक",
+        "आले",
+        "shunthi",
+        "सुंठ",
+        "सुंठी"
+      ]
+    },
+    {
+      "canonical": "amla",
+      "botanical": "Phyllanthus emblica",
+      "hi": "आंवला",
+      "mr": "आवळा",
+      "aliases": [
+        "amla",
+        "Phyllanthus emblica",
+        "आंवला",
+        "आवळा",
+        "amalaki",
+        "आमलकी"
+      ]
+    },
+    {
+      "canonical": "licorice",
+      "botanical": "Glycyrrhiza glabra",
+      "hi": "मुलेठी",
+      "mr": "ज्येष्ठमध",
+      "aliases": [
+        "licorice",
+        "Glycyrrhiza glabra",
+        "मुलेठी",
+        "ज्येष्ठमध",
+        "yashtimadhu",
+        "यष्टिमधु"
+      ]
+    },
+    {
+      "canonical": "brahmi",
+      "botanical": "Bacopa monnieri",
+      "hi": "ब्राह्मी",
+      "mr": "ब्राह्मी",
+      "aliases": [
+        "brahmi",
+        "Bacopa monnieri",
+        "ब्राह्मी",
+        "ब्राह्मी"
+      ]
+    },
+    {
+      "canonical": "guduchi",
+      "botanical": "Tinospora cordifolia",
+      "hi": "गिलोय",
+      "mr": "गुळवेल",
+      "aliases": [
+        "guduchi",
+        "Tinospora cordifolia",
+        "गिलोय",
+        "गुळवेल",
+        "giloy",
+        "गुडूची"
+      ]
+    }
+  ]
+}
