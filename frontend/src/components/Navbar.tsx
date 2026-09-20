@@ -1,17 +1,21 @@
 'use client';
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, LogOut, Menu, Search } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { navigation } from './Sidebar';
 import { api } from '@/services/api';
+import { API_BASE } from '@/services/api';
+import type { SessionUser } from './AppShell';
 
 export default function Navbar({
   toggle,
   onToggleEvidence,
+  user,
 }: {
   toggle: () => void;
   onToggleEvidence: () => void;
+  user: SessionUser | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -52,6 +56,15 @@ export default function Navbar({
     event.preventDefault();
     if (query.trim()) {
       router.push(`/ask?question=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, {method:'POST', credentials:'include'});
+    } finally {
+      router.replace('/login');
+      router.refresh();
     }
   };
 
@@ -102,13 +115,14 @@ export default function Navbar({
         </span>
 
         <Link href="/settings" className="profile-link" aria-label="Open settings">
-          <span className="avatar">OM</span>
+          {user?.picture ? <img className="avatar avatar-image" src={user.picture} alt="" referrerPolicy="no-referrer" /> : <span className="avatar">{(user?.name || user?.email || '?').slice(0,2).toUpperCase()}</span>}
           <span>
-            <b>Omkar</b>
-            <small>Researcher</small>
+            <b>{user?.name || user?.email || 'Verified user'}</b>
+            <small>{user?.email || 'Authenticated session'}</small>
           </span>
           <em>⌄</em>
         </Link>
+        <button type="button" className="logout-button" onClick={logout}><LogOut size={15} aria-hidden="true" /> <span>Logout</span></button>
       </div>
     </header>
   );

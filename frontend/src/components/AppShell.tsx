@@ -1,8 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import { API_BASE } from '@/services/api';
+
+export type SessionUser = {email:string;name:string;picture:string};
 
 function EvidencePanel({open, onClose}:{open:boolean; onClose:()=>void}) {
   if (!open) return null;
@@ -63,6 +67,42 @@ function EvidencePanel({open, onClose}:{open:boolean; onClose:()=>void}) {
 export default function AppShell({children}:{children:React.ReactNode}) {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [evidenceOpen, setEvidenceOpen] = useState<boolean>(false);
+  const [user, setUser] = useState<SessionUser|null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [authorizedPath, setAuthorizedPath] = useState<string|null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (pathname === '/login') {
+      setCheckingSession(false);
+      setAuthorizedPath(pathname);
+      return;
+    }
+    let active = true;
+    setCheckingSession(true);
+    setAuthorizedPath(null);
+    fetch(`${API_BASE}/api/auth/me`, {credentials:'include'})
+      .then(async (response) => response.ok ? response.json() : {authenticated:false})
+      .then((data) => {
+        if (!active) return;
+        if (data?.authenticated && data.user) {
+          setUser(data.user);
+          setCheckingSession(false);
+          setAuthorizedPath(pathname);
+          return;
+        }
+        router.replace('/login');
+      })
+      .catch(() => active && router.replace('/login'));
+    return () => { active = false; };
+  }, [pathname, router]);
+
+  if (pathname === '/login') return <>{children}</>;
+
+  if (checkingSession || authorizedPath !== pathname) {
+    return <main className="auth-loading" aria-live="polite"><span/><p>Checking secure workspace access…</p></main>;
+  }
 
   return (
     <div className="app-shell">
@@ -73,6 +113,7 @@ export default function AppShell({children}:{children:React.ReactNode}) {
         <Navbar
           toggle={()=>setSidebarOpen(!sidebarOpen)}
           onToggleEvidence={()=>setEvidenceOpen((current)=>!current)}
+          user={user}
         />
 
         <main id="main">{children}</main>

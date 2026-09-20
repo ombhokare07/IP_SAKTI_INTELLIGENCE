@@ -1,5 +1,5 @@
 import { decodeResponse } from './protocol.mjs';
-export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/,'');
+export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/$/,'');
 const inFlightStatusRequests = new Map<string, Promise<unknown>>();
 export function authHeaders(): Record<string,string> {
   const token = typeof window === 'undefined' ? '' : sessionStorage.getItem('ip-sakti-api-token');
@@ -26,7 +26,7 @@ async function requestApi(path:string, body?:unknown) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
   try {
-    const response = await fetch(`${API_BASE}/api${path}`, { method:body === undefined ? 'GET' : 'POST', headers:{'Content-Type':'application/json',...authHeaders()}, body:body === undefined ? undefined : JSON.stringify(body), signal:controller.signal });
+    const response = await fetch(`${API_BASE}/api${path}`, { method:body === undefined ? 'GET' : 'POST', credentials:'include', headers:{'Content-Type':'application/json',...authHeaders()}, body:body === undefined ? undefined : JSON.stringify(body), signal:controller.signal });
     return await decodeResponse(response);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw new Error('The request timed out. No successful result is asserted. Check the backend and retry.');
@@ -35,7 +35,7 @@ async function requestApi(path:string, body?:unknown) {
   } finally { clearTimeout(timeout); }
 }
 export async function download(path:string,filename:string) {
-  const response=await fetch(`${API_BASE}/api${path}`,{headers:authHeaders()});
+  const response=await fetch(`${API_BASE}/api${path}`,{credentials:'include',headers:authHeaders()});
   if(!response.ok) throw new Error(`Download failed (HTTP ${response.status}).`);
   const url=URL.createObjectURL(await response.blob());
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

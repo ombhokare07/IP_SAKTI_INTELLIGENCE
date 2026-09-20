@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     provider_timeout: float = Field(default=15, gt=0, le=120)
     api_auth_required: bool = False
     api_auth_token: SecretStr = SecretStr("")
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
+    session_secret: SecretStr = SecretStr("")
+    session_cookie_name: str = "ip_sakti_session"
+    session_ttl_seconds: int = Field(default=86_400, gt=300, le=2_592_000)
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     tk_provider: str = ""
@@ -71,6 +76,9 @@ class Settings(BaseSettings):
     def validate_chunk_window(self) -> "Settings":
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
+        session_secret = self.session_secret.get_secret_value()
+        if session_secret and len(session_secret.encode("utf-8")) < 32:
+            raise ValueError("SESSION_SECRET must contain at least 32 bytes.")
         return self
 
 

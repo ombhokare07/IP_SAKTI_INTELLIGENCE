@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api.router import api_router
+from backend.api.routes.auth import router as auth_router
 from config.settings import Settings, settings
 from database.vector.vector_store import ChromaVectorStore
 from rag.embeddings.embedding_service import BGEEmbeddingService
@@ -346,7 +347,7 @@ def create_app(
     application.state.rag_status = _initial_rag_status(runtime_settings)
     application.state.vector_store = None
     application.add_middleware(CORSMiddleware, allow_origins=runtime_settings.cors_origins,
-                               allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"],
+                               allow_credentials=True, allow_methods=["GET", "POST", "OPTIONS"],
                                allow_headers=["Content-Type", "Authorization"])
 
     @application.exception_handler(Exception)
@@ -376,6 +377,7 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "healthy"}
 
+    application.include_router(auth_router, prefix="/api")
     application.include_router(api_router)
     return application
 
