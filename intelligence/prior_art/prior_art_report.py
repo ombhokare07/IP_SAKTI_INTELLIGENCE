@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping, Sequence
 from typing import Any
+from intelligence.contracts import unique_strings
 
 
 def build_prior_art_report(
@@ -38,7 +39,7 @@ def build_prior_art_report(
     ]
     if provider_mode == "mock":
         limitations.insert(0, "TEST DATA ONLY: all returned patent records are synthetic fixtures.")
-    limitations.extend(warnings)
+    limitations=unique_strings([*limitations,*warnings])
     return {
         "search_summary": {
             "queries_run": list(queries),

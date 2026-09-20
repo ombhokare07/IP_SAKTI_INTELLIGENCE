@@ -26,6 +26,10 @@ def test_startup_without_cloud_key_initializes_independent_modules(client):
  assert data['providers']['rag']=='unconfigured'
  assert data['providers']['traditional_knowledge']=='mock' and data['providers']['regulations']=='mock'
  assert data['providers']['prior_art']=='mock' and not data['tkdl_access']
+ assert data['rag']['status'] in {'degraded','unavailable'}
+ assert data['rag']['knowledge_base']['status'] in {'empty','unavailable'}
+ assert data['rag']['grounded_chat']['status']=='unavailable'
+ assert not data['provider_status']['traditional_knowledge']['tkdl_connected']
 
 @pytest.mark.parametrize('endpoint,body',[('/traditional-knowledge/assess',{'description':'turmeric and neem decoction for wound healing'}),('/regulations/compare',{}),('/compliance/check',{}),('/compliance/journey',{})])
 def test_offline_phase_endpoints_return_explicit_mock_mode(client,endpoint,body):
@@ -85,6 +89,11 @@ def test_multilingual_api_offline_fallback(client):
  r=client.post('/api/languages/translate',json={'text':'Unusual source passage [2].','source_language':'en','target_language':'mr'})
  assert r.status_code==200 and not r.json()['translated'] and r.json()['output_language']=='en'
 
+def test_message_hi_is_not_treated_as_hindi_preference(client):
+ r=client.post('/api/agents/run',json={'question':'hi','intent':'ask','language':'en'})
+ assert r.status_code==200
+ assert r.json()['question']=='hi' and r.json()['output_language']=='en'
+
 @pytest.mark.parametrize('path,body',[('/traditional-knowledge/assess',{'description':' '}),('/agents/run',{'question':''}),('/regulations/compare',{'jurisdictions':['CA']}),('/regulations/compare',{'jurisdictions':[]}),('/voice/synthesize',{'text':'x','language':'de'}),('/compliance/check',{'document_id':'../../file'}),('/regulations/compare',{'as_of':'not-a-date'}),('/agents/run',{'question':'x','intent':'arbitrary'}),('/traditional-knowledge/assess',{'description':'x','provider':'tkdl'})])
 def test_new_api_validation_rejects_invalid_inputs(client,path,body):
  assert client.post('/api'+path,json=body).status_code==422
@@ -126,6 +135,7 @@ def test_report_generation_and_all_exports(client,kind,input):
  response=client.post('/api/reports',json={'title':'<script>unsafe title</script>','kind':kind,'input':input})
  assert response.status_code==201
  report=response.json()
+ assert report['task'] and report['source_mode']
  assert client.get('/api/reports/'+report['id']).json()['assessment']==report['assessment']
  for format in ['json','markdown','html']:
   result=client.get('/api/reports/'+report['id']+'/export',params={'format':format})

@@ -1,0 +1,159 @@
+{
+  "versions": [
+    {
+      "regulation_id": "IN-AYUSH-RULE161",
+      "version": "2012-rule161-baseline",
+      "jurisdiction": "IN",
+      "product_category": "herbal_product",
+      "title": "India AYUSH Drug Labelling - Rule 161 screening baseline",
+      "effective_from": "2012-11-26",
+      "published_at": "2012-11-26",
+      "mode": "local",
+      "evidence": {
+        "id": "IN-AYUSH-RULE161-EVIDENCE",
+        "title": "Drugs and Cosmetics Rules 1945 - Rule 161",
+        "excerpt": "The name of the drug. A correct statement of the net content. The name and address of the manufacturer. A distinctive batch number.",
+        "locator": "Government of India, Drugs and Cosmetics Rules 1945, Rule 161(3)",
+        "mode": "local",
+        "authority": "Government of India"
+      },
+      "requirements": [
+        {
+          "id": "in_product_name",
+          "field": "product_name",
+          "label": "Product name",
+          "description": "Screen the document for the product or drug name.",
+          "source_excerpt": "The name of the drug.",
+          "mandatory": true,
+          "operator": "present"
+        },
+        {
+          "id": "in_net_quantity",
+          "field": "net_quantity",
+          "label": "Net quantity",
+          "description": "Screen for a declared net content or quantity.",
+          "source_excerpt": "A correct statement of the net content.",
+          "mandatory": true,
+          "operator": "present"
+        },
+        {
+          "id": "in_manufacturer",
+          "field": "manufacturer",
+          "label": "Manufacturer",
+          "description": "Screen for manufacturer name and address information.",
+          "source_excerpt": "The name and address of the manufacturer.",
+          "mandatory": true,
+          "operator": "present"
+        },
+        {
+          "id": "in_batch_reference",
+          "field": "batch_reference",
+          "label": "Batch reference",
+          "description": "Screen for a batch reference.",
+          "source_excerpt": "A distinctive batch number.",
+          "mandatory": true,
+          "operator": "present"
+        }
+      ]
+    },
+
+    {
+      "regulation_id": "US-FDA-SUPPLEMENT-LABEL",
+      "version": "2016-supplement-facts-baseline",
+      "jurisdiction": "US",
+      "product_category": "herbal_product",
+      "title": "US FDA Dietary Supplement Labelling screening baseline",
+      "effective_from": "2016-07-26",
+      "published_at": "2016-05-27",
+      "mode": "local",
+      "evidence": {
+        "id": "US-FDA-SUPPLEMENT-EVIDENCE",
+        "title": "FDA Food Labeling - Nutrition and Supplement Facts",
+        "excerpt": "Revising the format of the Nutrition Facts and Supplement Facts labels.",
+        "locator": "FDA, 21 CFR Part 101, Food Labeling: Revision of the Nutrition and Supplement Facts Labels",
+        "mode": "local",
+        "authority": "U.S. Food and Drug Administration"
+      },
+      "requirements": [
+        {
+          "id": "us_supplement_facts",
+          "field": "supplement_facts",
+          "label": "Supplement Facts",
+          "description": "Screen for Supplement Facts information when the product is classified as a US dietary supplement.",
+          "source_excerpt": "Supplement Facts",
+          "mandatory": true,
+          "operator": "present"
+        }
+      ]
+    },
+
+    {
+      "regulation_id": "EU-THMP-ARTICLE16G",
+      "version": "consolidated-2025-01-01",
+      "jurisdiction": "EU",
+      "product_category": "herbal_product",
+      "title": "EU Traditional Herbal Medicinal Product screening baseline",
+      "effective_from": "2025-01-01",
+      "published_at": "2025-01-01",
+      "mode": "local",
+      "evidence": {
+        "id": "EU-THMP-16G-EVIDENCE",
+        "title": "Directive 2001/83/EC - Article 16g",
+        "excerpt": "traditional herbal medicinal product for use in specified indication(s) exclusively based upon long-standing use",
+        "locator": "Directive 2001/83/EC, consolidated version 2025-01-01, Article 16g",
+        "mode": "local",
+        "authority": "European Union"
+      },
+      "requirements": [
+        {
+          "id": "eu_traditional_use_statement",
+          "field": "traditional_use_statement",
+          "label": "Traditional-use statement",
+          "description": "Screen for the required traditional-use characterization when this regulatory route applies.",
+          "source_excerpt": "traditional herbal medicinal product for use in specified indication(s) exclusively based upon long-standing use",
+          "mandatory": true,
+          "operator": "present"
+        }
+      ]
+    },
+
+    {
+      "regulation_id": "UK-MHRA-THR",
+      "version": "thr-current-baseline",
+      "jurisdiction": "UK",
+      "product_category": "herbal_product",
+      "title": "UK MHRA Traditional Herbal Registration screening baseline",
+      "effective_from": "2012-08-14",
+      "published_at": "2024-01-05",
+      "mode": "local",
+      "evidence": {
+        "id": "UK-MHRA-THR-EVIDENCE",
+        "title": "MHRA Traditional Herbal Registration guidance",
+        "excerpt": "a mock-up label and patient information leaflet (PIL)",
+        "locator": "MHRA - Apply for a Traditional Herbal Registration, Required documents",
+        "mode": "local",
+        "authority": "Medicines and Healthcare products Regulatory Agency"
+      },
+      "requirements": [
+        {
+          "id": "uk_mockup_label",
+          "field": "mockup_label",
+          "label": "Mock-up label",
+          "description": "Screen for the presence of a draft or mock-up product label.",
+          "source_excerpt": "mock-up label",
+          "mandatory": true,
+          "operator": "present"
+        },
+        {
+          "id": "uk_patient_information_leaflet",
+          "field": "patient_information_leaflet",
+          "label": "Patient information leaflet",
+          "description": "Screen for patient information leaflet material.",
+          "source_excerpt": "patient information leaflet",
+          "mandatory": true,
+          "operator": "present"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "sources": [
+    {
+      "id": "CCRAS-WOUND-MANUAL",
+      "title": "Manual for ASHA/ANM - Wound Care",
+      "authority": "Central Council for Research in Ayurvedic Sciences, Ministry of Ayush, Government of India",
+      "url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+      "type": "official_publication"
+    },
+    {
+      "id": "CCRAS-HOME-REMEDIES",
+      "title": "Ayurvedic Home Remedies",
+      "authority": "Central Council for Research in Ayurvedic Sciences, Ministry of Ayush, Government of India",
+      "url": "https://ccras.nic.in/wp-content/uploads/2024/07/Ayurvedic-Home-Remedies-English.pdf",
+      "type": "official_publication"
+    },
+    {
+      "id": "CCRAS-HEALTH-PROMOTION",
+      "title": "Ayurvedic Advocacy for Health Promotion",
+      "authority": "Central Council for Research in Ayurvedic Sciences, Ministry of Ayush, Government of India",
+      "url": "https://ccras.nic.in/wp-content/uploads/2024/07/Ayurvedic-Advocacy-for-Health-Promotion.pdf",
+      "type": "official_publication"
+    },
+    {
+      "id": "CCRAS-ASHWAGANDHA",
+      "title": "Ashwagandha Safety Dossier / Booklet",
+      "authority": "Central Council for Research in Ayurvedic Sciences, Ministry of Ayush, Government of India",
+      "url": "https://ccras.nic.in/wp-content/uploads/2024/09/Revised-Ashwagandha-Booklet-9.8.2024-final.pdf",
+      "type": "official_publication"
+    },
+    {
+      "id": "ECHARAK",
+      "title": "e-Charak Knowledge Resources",
+      "authority": "National Medicinal Plants Board, Ministry of Ayush, Government of India",
+      "url": "https://echarak.ayush.gov.in/knowledge_resources",
+      "type": "official_database"
+    },
+    {
+      "id": "API",
+      "title": "Ayurvedic Pharmacopoeia of India",
+      "authority": "Pharmacopoeia Commission for Indian Medicine and Homoeopathy",
+      "url": "https://pcimh.gov.in/WriteReadData/RTF1984/Ayurvedic.pdf",
+      "type": "official_pharmacopoeia"
+    }
+  ]
+}

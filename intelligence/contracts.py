@@ -14,6 +14,21 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def unique_strings(values) -> list[str]:
+    """Return non-empty messages once, preserving their first-seen order."""
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        message = value.strip()
+        key = message.casefold()
+        if message and key not in seen:
+            seen.add(key)
+            result.append(message)
+    return result
+
+
 def validate_endpoint(value: str) -> str:
     url = urlsplit(value)
     if (url.scheme != "https" and not (url.scheme == "http" and url.hostname in {"localhost", "127.0.0.1"})) or not url.hostname or url.username or url.password or url.fragment:

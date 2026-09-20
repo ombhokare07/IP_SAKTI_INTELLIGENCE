@@ -1,0 +1,124 @@
+{
+  "records": [
+    {
+      "id": "TK-CCRAS-TURMERIC-WOUND-001",
+      "evidence": {
+        "id": "TK-CCRAS-TURMERIC-WOUND-001",
+        "title": "Turmeric - wound care",
+        "excerpt": "CCRAS wound-care guidance documents turmeric in oil for abrasions and small cuts as part of traditional wound-care guidance.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+        "locator": "Section 13 - Wound Care",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-ALOE-WOUND-001",
+      "evidence": {
+        "id": "TK-CCRAS-ALOE-WOUND-001",
+        "title": "Aloe - wound healing",
+        "excerpt": "CCRAS wound-care guidance documents aloe for wound healing and its use as a natural dressing.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+        "locator": "Section 13 - Wound Care",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-NEEM-WOUND-001",
+      "evidence": {
+        "id": "TK-CCRAS-NEEM-WOUND-001",
+        "title": "Neem - wound dressing",
+        "excerpt": "CCRAS wound-care guidance documents neem oil in wound-care and dressing contexts.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+        "locator": "Section 13 - Wound Care",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-TULSI-COUGH-001",
+      "evidence": {
+        "id": "TK-CCRAS-TULSI-COUGH-001",
+        "title": "Tulsi - cough, fever and digestive use",
+        "excerpt": "CCRAS home-remedy guidance documents Tulsi preparations for cough, fever and digestion, including juice and decoction preparations.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Ayurvedic-Home-Remedies-English.pdf",
+        "locator": "Tulsi section",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-GINGER-COUGH-001",
+      "evidence": {
+        "id": "TK-CCRAS-GINGER-COUGH-001",
+        "title": "Ginger - cough and fever preparations",
+        "excerpt": "CCRAS traditional home-remedy guidance documents ginger in preparations associated with cough and fever.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Ayurvedic-Advocacy-for-Health-Promotion.pdf",
+        "locator": "Common ailments and home remedies",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-GUDUCHI-FEVER-001",
+      "evidence": {
+        "id": "TK-CCRAS-GUDUCHI-FEVER-001",
+        "title": "Guduchi - fever decoction",
+        "excerpt": "CCRAS guidance documents Guduchi, also called Giloya, prepared as a decoction in traditional fever-related guidance.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+        "locator": "Fever section",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-LICORICE-COUGH-001",
+      "evidence": {
+        "id": "TK-CCRAS-LICORICE-COUGH-001",
+        "title": "Licorice - cough",
+        "excerpt": "CCRAS guidance documents liquorice, also called Mulethi, in traditional guidance for dry cough.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/07/Manual-for-ASHA-ANM_English.pdf",
+        "locator": "Cough section",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-CCRAS-ASHWAGANDHA-STRESS-001",
+      "evidence": {
+        "id": "TK-CCRAS-ASHWAGANDHA-STRESS-001",
+        "title": "Ashwagandha - traditional use and stress context",
+        "excerpt": "CCRAS documents Ashwagandha root in Indian traditional medicine and discusses its traditional and researched use in stress-related contexts.",
+        "source_url": "https://ccras.nic.in/wp-content/uploads/2024/09/Revised-Ashwagandha-Booklet-9.8.2024-final.pdf",
+        "locator": "Introduction",
+        "mode": "local",
+        "authority": "CCRAS, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-ECHARAK-AMLA-001",
+      "evidence": {
+        "id": "TK-ECHARAK-AMLA-001",
+        "title": "Amla - medicinal plant identity",
+        "excerpt": "The Ministry of Ayush e-Charak medicinal-plant resource lists Amla, Emblica officinalis, and identifies the fruit as the plant part used.",
+        "source_url": "https://echarak.ayush.gov.in/knowledge_resources",
+        "locator": "List of Medicinal Plants - Amla",
+        "mode": "local",
+        "authority": "National Medicinal Plants Board, Ministry of Ayush, Government of India"
+      }
+    },
+    {
+      "id": "TK-ECHARAK-BRAHMI-001",
+      "evidence": {
+        "id": "TK-ECHARAK-BRAHMI-001",
+        "title": "Brahmi - medicinal plant identity",
+        "excerpt": "The Ministry of Ayush e-Charak medicinal-plant resource lists Brahmi, Bacopa monnieri, and identifies the whole plant as the plant part used.",
+        "source_url": "https://echarak.ayush.gov.in/knowledge_resources",
+        "locator": "List of Medicinal Plants - Brahmi",
+        "mode": "local",
+        "authority": "National Medicinal Plants Board, Ministry of Ayush, Government of India"
+      }
+    }
+  ]
+}

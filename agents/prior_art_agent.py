@@ -4,7 +4,10 @@ class PriorArtAgent(RAGAgent):
     name='prior_art'
     def run(self,payload):
         engine=getattr(self.state,'prior_art_engine',None)
-        if not engine:return unconfigured('No real prior-art search is configured. No final novelty conclusion can be made.')
+        if not engine:
+            return {**unconfigured('No real prior-art search is configured. No final novelty conclusion can be made.'),
+                    'limitations':['NO REAL PRIOR-ART SEARCH -> NO FINAL NOVELTY CLAIM.',
+                                   'No records were evaluated because no prior-art provider is configured.']}
         invention=InventionAnalyzer().analyze({'title':payload.get('title') or 'User invention','description':payload.get('description') or payload['question'],**{k:v for k,v in payload.items() if k in ('ingredients','process','claimed_innovation','technical_advantage')}})
         result=engine.search(invention,limit=payload.get('limit',10))
         mode=result['search_summary']['provider_mode']

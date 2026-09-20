@@ -3,7 +3,7 @@ export function safeSourceUrl(value) {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password ? url.href : null; } catch { return null; }
 }
 export function describeMode(mode) {
-  return ({mock:'Synthetic test data',live:'Live provider mode',local:'Local source material',unconfigured:'No provider configured'})[mode] || 'Source mode unavailable';
+  return ({mock:'Synthetic test data',synthetic:'Synthetic test data',grounded:'Grounded evidence',live:'Live provider mode',local:'Local source material',unconfigured:'No provider configured'})[mode] || 'Source mode unavailable';
 }
 export function clampScore(score) {
   return typeof score === 'number' && Number.isFinite(score) ? Math.max(0,Math.min(100,score)) : null;

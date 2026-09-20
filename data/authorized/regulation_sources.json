@@ -1,0 +1,32 @@
+{
+  "sources": [
+    {
+      "id": "IN-DRUGS-RULES-ASU",
+      "jurisdiction": "IN",
+      "title": "Drugs and Cosmetics Rules - Ayurvedic, Siddha and Unani Drugs",
+      "authority": "Government of India",
+      "url": "https://ayush.gov.in/resources/pdf/quality_standards/Drugs-and-Cosmetics-Act-Rules.pdf"
+    },
+    {
+      "id": "US-FDA-DIETARY-SUPPLEMENT",
+      "jurisdiction": "US",
+      "title": "FDA Dietary Supplement Labeling Guide",
+      "authority": "U.S. Food and Drug Administration",
+      "url": "https://www.fda.gov/food/dietary-supplements-guidance-documents-regulatory-information/dietary-supplement-labeling-guide"
+    },
+    {
+      "id": "EU-DIR-2001-83",
+      "jurisdiction": "EU",
+      "title": "Directive 2001/83/EC - Traditional Herbal Medicinal Products",
+      "authority": "European Union",
+      "url": "https://eur-lex.europa.eu/eli/dir/2001/83/2025-01-01/eng"
+    },
+    {
+      "id": "UK-MHRA-THR",
+      "jurisdiction": "UK",
+      "title": "Traditional Herbal Registration Guidance",
+      "authority": "MHRA",
+      "url": "https://www.gov.uk/guidance/apply-for-a-traditional-herbal-registration-thr"
+    }
+  ]
+}

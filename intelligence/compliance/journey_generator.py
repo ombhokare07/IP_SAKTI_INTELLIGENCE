@@ -1,3 +1,6 @@
+from intelligence.contracts import unique_strings
+
+
 class ComplianceJourneyGenerator:
     def __init__(self,checker):self.checker=checker
     def generate(self,payload):
@@ -10,4 +13,4 @@ class ComplianceJourneyGenerator:
                           'status':'action_required' if check['status'] in {'missing','rule_mismatch'} else 'review_required',
                           'depends_on':['verify_sources'],'evidence_ids':[check['evidence_id']],'field':check['field']})
         steps.append({'id':'professional_review','title':'Request qualified professional review before submission','status':'review_required','depends_on':[s['id'] for s in steps[1:]] or ['verify_sources'],'evidence_ids':[]})
-        return {'status':result['status'],'mode':result['mode'],'jurisdiction':result['jurisdiction'],'steps':steps,'assessment':result,'citations':result['citations'],'limitations':['This journey is a screening checklist. No submission, approval, fee, deadline or regulatory clearance is implied.']}
+        return {'status':result['status'],'mode':result['mode'],'jurisdiction':result['jurisdiction'],'steps':steps,'assessment':result,'citations':result['citations'],'limitations':unique_strings(['This journey is screening guidance only. No approval, fee, deadline or regulatory clearance is implied.'])}

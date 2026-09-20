@@ -50,7 +50,7 @@ class AgentRequest(StrictRequest):
     document_text: str = Field(default='',max_length=1000000)
     limit: int = Field(default=10,ge=1,le=100)
     run_prior_art_search: bool = False
-    target_language: Literal['en','hi','mr'] = 'en'
+    target_language: Literal['en','hi','mr'] | None = None
     @field_validator('jurisdiction')
     @classmethod
     def country(cls,v):return normalize_jurisdiction(v)

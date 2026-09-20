@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from rag.citations.citation_generator import chunk_value
+from rag.citations.citation_generator import chunk_value, safe_display_identifier
 
 
 def _is_positive_int(value: Any) -> bool:
@@ -70,7 +70,8 @@ def validate_source(
                 if (
                     cited_value not in (None, "")
                     and retrieved_value not in (None, "")
-                    and str(cited_value) != str(retrieved_value)
+                    and str(safe_display_identifier(cited_value) if field == "source" else cited_value)
+                    != str(safe_display_identifier(retrieved_value) if field == "source" else retrieved_value)
                 ):
                     issues.append(f"{field} does not match retrieved evidence")
 

@@ -1,5 +1,5 @@
 import math
-from intelligence.contracts import screening_trust
+from intelligence.contracts import screening_trust, unique_strings
 from intelligence.regulations.jurisdiction_engine import normalize_jurisdiction
 from intelligence.compliance.requirement_extractor import extract_requirements
 from intelligence.compliance.missing_field_detector import extract_document_fields,detect_missing_fields,is_missing
@@ -30,7 +30,7 @@ class ComplianceChecker:
                 'missing_fields':detect_missing_fields(requirements,fields),'score':calculate_compliance_score(checks),
                 'legal_compliance':'undetermined','citations':citations,'versions':[{'id':v['regulation_id'],'version':v['version'],'effective_from':v['effective_from']} for v in versions],
                 'trust':screening_trust(citations,mode=self.regulations.mode),'sync':self.regulations.sync_status,
-                'limitations':(['TEST DATA ONLY: requirements are synthetic fixtures.'] if self.regulations.mode=='mock' else [])+[
+                'limitations':unique_strings((['TEST DATA ONLY: requirements are synthetic fixtures.'] if self.regulations.mode=='mock' else [])+[
                     'No evidence -> no definitive conclusion. No loaded rule means the requirement is unknown.',
                     'Provided fields are user assertions; matching a rule does not verify accuracy, authenticity, safety or legal compliance.',
-                    'Prose requirements require a curated field mapping with an exact source excerpt.']}
+                    'Prose requirements require a curated field mapping with an exact source excerpt.'])}

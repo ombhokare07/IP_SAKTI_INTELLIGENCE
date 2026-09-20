@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
@@ -12,52 +13,47 @@ function EvidencePanel({open, onClose}:{open:boolean; onClose:()=>void}) {
       <aside
         id="evidence-panel"
         className="evidence-panel open"
-        aria-label="Evidence panel"
+        aria-label="Evidence review guide"
         aria-hidden={false}
         aria-expanded={true}
         data-open={true}
       >
         <div className="evidence-panel__header">
           <div>
-            <span className="eyebrow">EVIDENCE</span>
-            <h2>Current case</h2>
+            <span className="eyebrow">REVIEW GUIDE</span>
+            <h2>Read a screening safely</h2>
           </div>
           <button type="button" className="panel-close" onClick={onClose} aria-label="Close evidence panel">✕</button>
         </div>
 
-        <div className="evidence-panel__group">
-          <div className="evidence-item">
-            <span className="evidence-item__label">Source quality</span>
-            <strong>High confidence</strong>
-          </div>
-          <div className="evidence-item">
-            <span className="evidence-item__label">Open items</span>
-            <strong>3 checks</strong>
-          </div>
-        </div>
+        <p className="evidence-panel__intro">Each result separates what was searched, what remains unassessed and which source excerpts support the screen.</p>
 
         <div className="evidence-panel__list">
           <div className="evidence-row">
             <span className="dot dot--blue" />
             <div>
-              <strong>Patentability</strong>
-              <small>Claims and novelty review</small>
+              <strong>Start with the summary</strong>
+              <small>Confirm provider, search and authorization status.</small>
             </div>
           </div>
           <div className="evidence-row">
             <span className="dot dot--sage" />
             <div>
-              <strong>Traditional knowledge</strong>
-              <small>Community and prior use checks</small>
+              <strong>Inspect supporting sources</strong>
+              <small>Open excerpts and verify the underlying record.</small>
             </div>
           </div>
           <div className="evidence-row">
             <span className="dot dot--amber" />
             <div>
-              <strong>Regulatory mapping</strong>
-              <small>Jurisdiction-specific review</small>
+              <strong>Resolve important gaps</strong>
+              <small>Unsearched or missing evidence is never a clearance.</small>
             </div>
           </div>
+        </div>
+        <div className="evidence-panel__actions">
+          <Link className="button primary small" href="/knowledge-library" onClick={onClose}>Open source library</Link>
+          <Link className="button ghost small" href="/settings" onClick={onClose}>Check provider status</Link>
         </div>
       </aside>
     </>

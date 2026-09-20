@@ -13,7 +13,7 @@ from agents.report_agent import ReportAgent
 from agents.citation_agent import CitationAgent
 from agents.evidence_agent import EvidenceAgent
 from agents.contradiction_agent import ContradictionAgent
-from intelligence.contracts import NO_EVIDENCE, SCREENING_NOTICE
+from intelligence.contracts import NO_EVIDENCE, SCREENING_NOTICE, unique_strings
 from multilingual.terminology_normalizer import normalize_terminology
 
 class Orchestrator:
@@ -25,10 +25,11 @@ class Orchestrator:
     def run(self,payload):
         question=payload.get('question','').strip()
         if not question:raise ValueError('Question is required.')
-        language=payload.get('language','en')
+        response_language=payload.get('language','en')
         if payload.get('intent')=='translation':
             from intelligence.contracts import screening_trust
-            translated=self.services.translator.translate(question,payload.get('target_language') or language,payload.get('source_language'))
+            target_language=payload.get('target_language') or response_language
+            translated=self.services.translator.translate(question,target_language,payload.get('source_language'))
             return {'question':question,'answer':translated['text'],'status':translated['status'],
                     'mode':translated['mode'],'output_language':translated['output_language'],
                     'routing':self.classifier.classify(question,'translation'),
@@ -63,10 +64,15 @@ class Orchestrator:
             status='conflicting_evidence'
             evidence['trust']['trust_score']=0
         if any(t['status']=='agent_failed' for t in trace):status='partial' if len(trace)>1 else 'agent_failed'
-        output=self.services.translator.translate(answer,language,'en') if routing['primary']!='translation' else {'text':answer,'output_language':language,'status':'original'}
+        output=self.services.translator.translate(answer,response_language,'en') if routing['primary']!='translation' else {'text':answer,'output_language':response_language,'status':'original'}
+        limitations=unique_strings([
+            *(limitation for result in results.values() for limitation in (result.get('limitations') or [])),
+            *([NO_EVIDENCE] if status=='insufficient_evidence' else []),
+            SCREENING_NOTICE,
+        ])
         return {'question':question,'answer':output['text'],'status':status,'mode':evidence['mode'],
                 'output_language':output['output_language'],'routing':routing,'trace':trace+[{'agent':a,'status':'completed'} for a in ('citation','evidence','contradiction')],
                 'results':results,'citations':validated['citations'],'rejected_citations':validated['rejected'],
                 'trust':evidence['trust'],'contradictions':contradictions,'normalization':normalized,
                 'input_translation':translation,'output_translation':output,
-                'limitations':['NO EVIDENCE -> NO DEFINITIVE CONCLUSION.','NO REAL PRIOR-ART SEARCH -> NO FINAL NOVELTY CLAIM.','NO AUTHORIZED TK SEARCH -> NO FINAL TK CLEARANCE.',SCREENING_NOTICE]}
+                'limitations':limitations}

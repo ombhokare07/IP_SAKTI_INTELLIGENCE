@@ -1,4 +1,4 @@
-from intelligence.contracts import screening_trust,SCREENING_NOTICE
+from intelligence.contracts import screening_trust,SCREENING_NOTICE,unique_strings
 from intelligence.regulations.jurisdiction_engine import normalize_jurisdiction
 from datetime import date
 
@@ -13,12 +13,17 @@ def compare_regulations(tracker,jurisdictions,product_category,*,mode,as_of=None
         rows.append({'field':field,'jurisdictions':cells})
     citations=[{**v['evidence'],'jurisdiction':v['jurisdiction'],'regulation_id':v['regulation_id'],'version':v['version']} for versions in snapshots.values() for v in versions]
     coverage={j:bool(snapshots[j]) for j in countries}
+    source_limitation=(
+        'No configured regulatory evidence source was available for this jurisdiction. This does not mean no regulatory requirement applies.'
+        if mode=='unconfigured' else
+        'An empty cell means no requirement was found in the configured source; it does not mean no requirement applies.'
+    )
     return {'status':'screened' if citations else 'insufficient_evidence','mode':mode,'product_category':product_category,
             'as_of':as_of,'jurisdictions':countries,'coverage':coverage,'rows':rows,'versions':snapshots,'citations':citations,
             'trust':screening_trust(citations,mode=mode,coverage=sum(coverage.values())/max(1,len(countries))),
-            'limitations':(['TEST DATA ONLY: synthetic regulation fixtures; no legal requirements are asserted.'] if mode=='mock' else [])+[
-             'An empty cell means no requirement was found in this corpus; it does not mean no requirement applies.',
+            'limitations':unique_strings((['TEST DATA ONLY: synthetic regulation fixtures; no legal requirements are asserted.'] if mode=='mock' else [])+[
+             source_limitation,
              'Expired or ambiguous version sets are excluded; missing coverage requires source review.',
-             'Product classification, authority, source currency and jurisdiction coverage require professional verification.',SCREENING_NOTICE]}
+             'Product classification, authority, source currency and jurisdiction coverage require professional verification.',SCREENING_NOTICE])}
 class RegulationComparator:
     compare=staticmethod(compare_regulations)

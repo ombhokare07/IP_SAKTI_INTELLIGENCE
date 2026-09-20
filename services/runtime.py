@@ -43,12 +43,16 @@ class Services:
         tk=None
         if settings.tk_provider=='mock' and allow_mock:tk=LocalTKProvider(ROOT/'data/fixtures/tk.json',mock=True)
         elif settings.tk_provider=='local' and settings.tk_corpus_path:tk=LocalTKProvider(settings.tk_corpus_path,authorized=settings.tk_search_authorized)
-        elif settings.tk_provider=='http_json':tk=GatewayTKProvider(gateway(settings.tk_api_url,settings.tk_api_key),authorized=settings.tk_search_authorized)
+        elif settings.tk_provider=='http_json':
+            tk_gateway=gateway(settings.tk_api_url,settings.tk_api_key)
+            if tk_gateway.configured:tk=GatewayTKProvider(tk_gateway,authorized=settings.tk_search_authorized)
         self.tk=TraditionalKnowledgeEngine(tk)
         reg=None
         if settings.regulation_provider=='mock' and allow_mock:reg=LocalRegulationProvider(ROOT/'data/fixtures/regulations.json',mock=True)
         elif settings.regulation_provider=='local' and settings.regulation_corpus_path:reg=LocalRegulationProvider(settings.regulation_corpus_path)
-        elif settings.regulation_provider=='http_json':reg=GatewayRegulationProvider(gateway(settings.regulation_api_url,settings.regulation_api_key))
+        elif settings.regulation_provider=='http_json':
+            regulation_gateway=gateway(settings.regulation_api_url,settings.regulation_api_key)
+            if regulation_gateway.configured:reg=GatewayRegulationProvider(regulation_gateway)
         self.regulations=RegulationEngine(VersionTracker(self.db),reg)
         if reg and reg.mode in {'mock','local'}:self.regulations.sync()
         self.compliance=ComplianceChecker(self.regulations)
