@@ -7,7 +7,12 @@ def status(request:Request):
     s=services(request);cfg=s.settings
     prior=getattr(request.app.state,'prior_art_engine',None)
     rag_details=getattr(request.app.state,'rag_status',None)
-    def gateway_status(provider,url,key):return 'configured_not_verified' if provider=='http_json' and url and key.get_secret_value() else 'unconfigured'
+    def gateway_status(provider,url,key):
+        if provider == 'http_json':
+            return 'configured_not_verified' if url and key.get_secret_value() else 'unconfigured'
+        if provider in {'local_nllb','local_whisper','edge_tts'}:
+            return 'configured_not_verified'
+        return 'unconfigured'
     providers={
       'rag':'initialized' if getattr(request.app.state,'rag_pipeline',None) else 'unconfigured',
       'prior_art':('mock' if getattr(prior.provider,'is_test_fixture',False) else 'configured_not_verified') if prior else 'unconfigured',
@@ -48,9 +53,28 @@ def status(request:Request):
       'traditional_knowledge':{'status':'configured' if s.tk.provider else 'unconfigured','provider':cfg.tk_provider or None,
                                'authorized':bool(s.tk.provider and s.tk.provider.authorized),'tkdl_connected':False},
       'regulations':{'status':'configured' if s.regulations.provider else 'unconfigured','provider':cfg.regulation_provider or None},
-      'translation':{'status':'configured' if cfg.translation_provider=='http_json' and cfg.translation_api_url and cfg.translation_api_key.get_secret_value() else 'unconfigured'},
-      'speech_to_text':{'status':'configured' if cfg.stt_provider=='http_json' and cfg.stt_api_url and cfg.stt_api_key.get_secret_value() else 'unconfigured'},
-      'text_to_speech':{'status':'configured' if cfg.tts_provider=='http_json' and cfg.tts_api_url and cfg.tts_api_key.get_secret_value() else 'unconfigured'},
+      'translation':{
+          'status':'configured' if cfg.translation_provider in {'local_nllb'} or (
+              cfg.translation_provider=='http_json' and cfg.translation_api_url and cfg.translation_api_key.get_secret_value()
+          ) else 'unconfigured',
+          'provider':cfg.translation_provider or None,
+          'execution':'local' if cfg.translation_provider=='local_nllb' else 'remote' if cfg.translation_provider=='http_json' else None
+      },
+      'speech_to_text':{
+          'status':'configured' if cfg.stt_provider in {'local_whisper'} or (
+              cfg.stt_provider=='http_json' and cfg.stt_api_url and cfg.stt_api_key.get_secret_value()
+          ) else 'unconfigured',
+          'provider':cfg.stt_provider or None,
+          'execution':'local' if cfg.stt_provider=='local_whisper' else 'remote' if cfg.stt_provider=='http_json' else None
+      },
+      'text_to_speech':{
+          'status':'configured' if cfg.tts_provider in {'edge_tts'} or (
+              cfg.tts_provider=='http_json' and cfg.tts_api_url and cfg.tts_api_key.get_secret_value()
+          ) else 'unconfigured',
+          'provider':cfg.tts_provider or None,
+          'execution':'online' if cfg.tts_provider=='edge_tts' else 'remote' if cfg.tts_provider=='http_json' else None,
+          'requires_internet':cfg.tts_provider=='edge_tts'
+      },
     }
     return {'status':'running','version':'1.0.0','providers':providers,'tkdl_access':False,
             'provider_status':provider_status,'rag':rag,

@@ -5,8 +5,11 @@ from services.document_service import DocumentService
 from services.report_service import ReportService
 from services.notification_service import NotificationService
 from services.provider_gateway import JSONGateway
+from services.local_nllb_gateway import LocalNLLBGateway
 from services.speech_to_text import SpeechToTextService
+from services.local_whisper_gateway import LocalWhisperGateway
 from services.text_to_speech import TextToSpeechService
+from services.edge_tts_gateway import EdgeTTSGateway
 from multilingual.translator import Translator
 from intelligence.traditional_knowledge.providers import LocalTKProvider,GatewayTKProvider
 from intelligence.traditional_knowledge.tk_engine import TraditionalKnowledgeEngine
@@ -35,7 +38,7 @@ class Services:
         for field, allowed in (
             ('tk_provider',{'','local','mock','http_json'}),
             ('regulation_provider',{'','local','mock','http_json'}),
-            ('translation_provider',{'','http_json'}),('stt_provider',{'','http_json'}),('tts_provider',{'','http_json'})):
+            ('translation_provider',{'','http_json','local_nllb'}),('stt_provider',{'','http_json','local_whisper'}),('tts_provider',{'','http_json','edge_tts'})):
             if getattr(settings,field) not in allowed:
                 self.configuration_errors.append(f'Unsupported {field}; this provider is unavailable.')
         if not allow_mock and (settings.tk_provider=='mock' or settings.regulation_provider=='mock'):
@@ -58,8 +61,23 @@ class Services:
         self.compliance=ComplianceChecker(self.regulations)
         self.journey=ComplianceJourneyGenerator(self.compliance)
         self.alerts=NotificationService(self.regulations,self.db)
-        self.translator=Translator(gateway(settings.translation_api_url,settings.translation_api_key) if settings.translation_provider=='http_json' else None)
-        self.stt=SpeechToTextService(gateway(settings.stt_api_url,settings.stt_api_key) if settings.stt_provider=='http_json' else None)
-        self.tts=TextToSpeechService(gateway(settings.tts_api_url,settings.tts_api_key) if settings.tts_provider=='http_json' else None)
+        translation_backend=None
+        if settings.translation_provider=='http_json':
+            translation_backend=gateway(settings.translation_api_url,settings.translation_api_key)
+        elif settings.translation_provider=='local_nllb':
+            translation_backend=LocalNLLBGateway()
+        self.translator=Translator(translation_backend)
+        stt_backend=None
+        if settings.stt_provider=='http_json':
+            stt_backend=gateway(settings.stt_api_url,settings.stt_api_key)
+        elif settings.stt_provider=='local_whisper':
+            stt_backend=LocalWhisperGateway()
+        self.stt=SpeechToTextService(stt_backend)
+        tts_backend=None
+        if settings.tts_provider=='http_json':
+            tts_backend=gateway(settings.tts_api_url,settings.tts_api_key)
+        elif settings.tts_provider=='edge_tts':
+            tts_backend=EdgeTTSGateway()
+        self.tts=TextToSpeechService(tts_backend)
     def close(self):
         for gateway in self.gateways:gateway.close()

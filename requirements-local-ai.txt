@@ -1,0 +1,10 @@
+﻿# IP-SAKTI local multilingual providers
+
+transformers==4.57.6
+sentencepiece==0.2.2
+safetensors
+faster-whisper
+edge-tts
+
+# PyTorch CUDA is installed separately on NVIDIA Windows systems:
+# python -m pip install --upgrade --force-reinstall torch==2.14.0 --index-url https://download.pytorch.org/whl/cu130

@@ -1,6 +1,7 @@
 import asyncio
 
 import httpx
+import pytest
 from pydantic import SecretStr
 
 from backend.main import app, create_app
@@ -11,11 +12,36 @@ from intelligence.prior_art.providers.mock_provider import MockPriorArtProvider
 from intelligence.prior_art.search_engine import PriorArtSearchEngine
 
 
+@pytest.fixture(autouse=True)
+def disable_api_auth_for_legacy_endpoint_tests():
+    """
+    These tests validate endpoint behavior, not authentication.
+
+    Authentication is tested separately, so these tests should not depend
+    on API_AUTH_REQUIRED from the developer's local .env file.
+    """
+    settings = app.state.settings
+
+    original_required = settings.api_auth_required
+    original_env = settings.app_env
+
+    settings.api_auth_required = False
+    settings.app_env = "test"
+
+    try:
+        yield
+    finally:
+        settings.api_auth_required = original_required
+        settings.app_env = original_env
+
+
 def test_health_is_lightweight() -> None:
     async def request_health() -> httpx.Response:
         transport = httpx.ASGITransport(app=app)
+
         async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
+            transport=transport,
+            base_url="http://test",
         ) as client:
             return await client.get("/health")
 
@@ -58,18 +84,25 @@ def test_chat_response_includes_public_trust_schema() -> None:
     async def request_chat() -> httpx.Response:
         app.state.rag_pipeline = FakePipeline()
         transport = httpx.ASGITransport(app=app)
+
         try:
             async with httpx.AsyncClient(
-                transport=transport, base_url="http://test"
+                transport=transport,
+                base_url="http://test",
             ) as client:
-                return await client.post("/api/chat", json={"question": "Question?"})
+                return await client.post(
+                    "/api/chat",
+                    json={"question": "Question?"},
+                )
         finally:
             del app.state.rag_pipeline
 
     response = asyncio.run(request_chat())
 
     assert response.status_code == 200
+
     body = response.json()
+
     assert body["status"] == "grounded"
     assert body["trust"]["trust_score"] == 88
     assert "internal_factors" not in body["trust"]
@@ -79,10 +112,15 @@ def test_chat_response_includes_public_trust_schema() -> None:
 def test_chat_rejects_blank_question() -> None:
     async def request_chat() -> httpx.Response:
         transport = httpx.ASGITransport(app=app)
+
         async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
+            transport=transport,
+            base_url="http://test",
         ) as client:
-            return await client.post("/api/chat", json={"question": "   "})
+            return await client.post(
+                "/api/chat",
+                json={"question": "   "},
+            )
 
     response = asyncio.run(request_chat())
 
@@ -91,15 +129,23 @@ def test_chat_rejects_blank_question() -> None:
 
 def test_chat_reports_missing_llm_configuration() -> None:
     application = create_app(
-        Settings(_env_file=None, gemini_api_key=SecretStr(""))
+        Settings(
+            _env_file=None,
+            gemini_api_key=SecretStr(""),
+        )
     )
 
     async def request_chat() -> httpx.Response:
         transport = httpx.ASGITransport(app=application)
+
         async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
+            transport=transport,
+            base_url="http://test",
         ) as client:
-            return await client.post("/api/chat", json={"question": "Question?"})
+            return await client.post(
+                "/api/chat",
+                json={"question": "Question?"},
+            )
 
     response = asyncio.run(request_chat())
 
@@ -136,10 +182,13 @@ def test_patentability_check_runs_full_structured_pre_screen(tmp_path) -> None:
             sufficiency_threshold=0.5,
             min_relevant_chunks=1,
         )
+
         transport = httpx.ASGITransport(app=app)
+
         try:
             async with httpx.AsyncClient(
-                transport=transport, base_url="http://test"
+                transport=transport,
+                base_url="http://test",
             ) as client:
                 return await client.post(
                     "/api/patentability/check",
@@ -161,34 +210,55 @@ def test_patentability_check_runs_full_structured_pre_screen(tmp_path) -> None:
             app.state.patentability_engine = None
 
     response = asyncio.run(request_check())
+
     assert response.status_code == 200
+
     body = response.json()
+
     assert body["assessment"]["novelty"]["status"] == "prior_art_search_required"
     assert body["citations"][0]["chunk_id"] == "patent-guide-1"
     assert body["trust"]["evidence_score"] > 0
     assert "prior-art search" in body["evidence_gaps"]
-    assert body["limitations"][-1] == "The score does not represent probability of patent grant."
+    assert (
+        body["limitations"][-1]
+        == "The score does not represent probability of patent grant."
+    )
 
 
 def test_patentability_check_requires_title_and_description() -> None:
     async def request_check() -> httpx.Response:
         transport = httpx.ASGITransport(app=app)
+
         async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
+            transport=transport,
+            base_url="http://test",
         ) as client:
             return await client.post(
-                "/api/patentability/check", json={"title": "Missing description"}
+                "/api/patentability/check",
+                json={"title": "Missing description"},
             )
 
     response = asyncio.run(request_check())
+
     assert response.status_code == 422
 
 
 class _OfflineEmbedding:
     def embed_documents(self, texts, *, batch_size=32):
-        vocabulary = ("turmeric", "neem", "aloe", "wound", "extraction", "sensor")
+        vocabulary = (
+            "turmeric",
+            "neem",
+            "aloe",
+            "wound",
+            "extraction",
+            "sensor",
+        )
+
         return [
-            [float(text.casefold().replace("-", " ").count(word)) for word in vocabulary]
+            [
+                float(text.casefold().replace("-", " ").count(word))
+                for word in vocabulary
+            ]
             for text in texts
         ]
 
@@ -196,11 +266,18 @@ class _OfflineEmbedding:
 def test_prior_art_search_api_uses_explicit_mock_provider() -> None:
     async def request_search() -> httpx.Response:
         app.state.prior_art_engine = PriorArtSearchEngine(
-            MockPriorArtProvider(), _OfflineEmbedding(), allow_test_provider=True
+            MockPriorArtProvider(),
+            _OfflineEmbedding(),
+            allow_test_provider=True,
         )
+
         transport = httpx.ASGITransport(app=app)
+
         try:
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url="http://test",
+            ) as client:
                 return await client.post(
                     "/api/prior-art/search",
                     json={
@@ -218,8 +295,11 @@ def test_prior_art_search_api_uses_explicit_mock_provider() -> None:
             app.state.prior_art_engine = None
 
     response = asyncio.run(request_search())
+
     assert response.status_code == 200
+
     body = response.json()
+
     assert body["search_summary"]["provider_mode"] == "mock"
     assert body["search_summary"]["configuration_status"] == "mock_test_data"
     assert body["results"][0]["publication_number"].startswith("TEST-FIXTURE-")
@@ -229,14 +309,23 @@ def test_prior_art_search_api_uses_explicit_mock_provider() -> None:
 def test_prior_art_api_reports_missing_live_configuration() -> None:
     async def request_search() -> httpx.Response:
         app.state.prior_art_engine = None
+
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://test",
+        ) as client:
             return await client.post(
                 "/api/prior-art/search",
-                json={"title": "Title", "description": "Description"},
+                json={
+                    "title": "Title",
+                    "description": "Description",
+                },
             )
 
     response = asyncio.run(request_search())
+
     assert response.status_code == 503
     assert response.json()["detail"] == "Live prior-art provider is not configured."
 
@@ -248,19 +337,30 @@ def test_prior_art_api_maps_rate_limit_to_controlled_error() -> None:
 
     async def request_search() -> httpx.Response:
         app.state.prior_art_engine = RateLimitedEngine()
+
         transport = httpx.ASGITransport(app=app)
+
         try:
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url="http://test",
+            ) as client:
                 return await client.post(
                     "/api/prior-art/search",
-                    json={"title": "Title", "description": "Description"},
+                    json={
+                        "title": "Title",
+                        "description": "Description",
+                    },
                 )
         finally:
             app.state.prior_art_engine = None
 
     response = asyncio.run(request_search())
+
     assert response.status_code == 429
-    assert response.json() == {"detail": "The prior-art provider rate limit was reached."}
+    assert response.json() == {
+        "detail": "The prior-art provider rate limit was reached."
+    }
     assert "secret" not in response.text
 
 
@@ -270,17 +370,21 @@ def test_patentability_api_optional_prior_art_integration(tmp_path) -> None:
 
     class Retriever:
         def retrieve(self, question):
-            return [{
-                "chunk_id": "guide",
-                "text": "Patent novelty and inventive step require assessment.",
-                "source": "guidance.pdf",
-                "page": 1,
-                "path": str(source),
-                "distance": 0.1,
-            }]
+            return [
+                {
+                    "chunk_id": "guide",
+                    "text": "Patent novelty and inventive step require assessment.",
+                    "source": "guidance.pdf",
+                    "page": 1,
+                    "path": str(source),
+                    "distance": 0.1,
+                }
+            ]
 
     prior_engine = PriorArtSearchEngine(
-        MockPriorArtProvider(), _OfflineEmbedding(), allow_test_provider=True
+        MockPriorArtProvider(),
+        _OfflineEmbedding(),
+        allow_test_provider=True,
     )
 
     async def request_check() -> httpx.Response:
@@ -291,14 +395,21 @@ def test_patentability_api_optional_prior_art_integration(tmp_path) -> None:
             min_relevant_chunks=1,
             prior_art_engine=prior_engine,
         )
+
         transport = httpx.ASGITransport(app=app)
+
         try:
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url="http://test",
+            ) as client:
                 return await client.post(
                     "/api/patentability/check",
                     json={
                         "title": "Herbal wound formulation",
-                        "description": "A formulation containing turmeric and neem for wound healing.",
+                        "description": (
+                            "A formulation containing turmeric and neem for wound healing."
+                        ),
                         "claimed_innovation": "A modified extraction process.",
                         "technical_advantage": "Improved retention.",
                         "run_prior_art_search": True,
@@ -308,7 +419,10 @@ def test_patentability_api_optional_prior_art_integration(tmp_path) -> None:
             app.state.patentability_engine = None
 
     response = asyncio.run(request_check())
+
     assert response.status_code == 200
+
     body = response.json()
+
     assert body["prior_art"]["search_summary"]["provider_mode"] == "mock"
     assert body["assessment"]["novelty"]["status"] != "prior_art_search_required"
