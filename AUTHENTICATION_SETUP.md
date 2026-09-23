@@ -8,6 +8,7 @@ The backend starts without any optional provider. `GET /api/status` distinguishe
 
 | Provider | Environment variables | Required? | Feature | Behavior when absent |
 | --- | --- | --- | --- | --- |
+| Google user authentication | `GOOGLE_CLIENT_ID`, `SESSION_SECRET`; keep `GOOGLE_CLIENT_SECRET` server-only when provisioned | Required for browser sign-in | Verifies Google ID tokens on the backend and exchanges them for the IP-SAKTI HttpOnly session | Google Sign-In reports `not_configured`; no browser account or session is fabricated. |
 | Gemini | `GEMINI_API_KEY`; optional `GEMINI_MODEL` | Optional | Source-grounded `/api/chat` generation and the configured RAG-backed patentability runtime | The application starts; RAG reports `unconfigured`; `/api/chat` returns a controlled `503` unless a test/runtime pipeline was explicitly injected. No answer is fabricated. |
 | EPO Open Patent Services | `PRIOR_ART_PROVIDER=epo_ops`, `EPO_OPS_CONSUMER_KEY`, `EPO_OPS_CONSUMER_SECRET`; optional `PRIOR_ART_TIMEOUT`, `PRIOR_ART_CACHE_TTL` | Optional | Live EPO OPS prior-art search | The application starts; prior art reports `unconfigured`; the API returns an unavailable/insufficient-evidence screening result rather than a final novelty claim. |
 | Operator prior-art gateway | `PRIOR_ART_PROVIDER=http_json`, `PRIOR_ART_API_URL`, `PRIOR_ART_API_KEY`; optional `PRIOR_ART_TIMEOUT`, `PRIOR_ART_CACHE_TTL` | Optional alternative | Prior-art search through an operator-managed JSON service | The application starts and no live search occurs. Configured status does not verify that the gateway is reachable or authoritative. |
@@ -18,7 +19,21 @@ The backend starts without any optional provider. `GET /api/status` distinguishe
 | Translation gateway | `TRANSLATION_PROVIDER=http_json`, `TRANSLATION_API_URL`, `TRANSLATION_API_KEY` | Optional | Machine translation beyond the bundled English/Hindi/Marathi terminology dictionary | Original text is retained with `translation_unavailable`; no translation is invented. |
 | Speech-to-text gateway | `STT_PROVIDER=http_json`, `STT_API_URL`, `STT_API_KEY` | Optional | Voice transcription | Returns `unconfigured` with no transcript; typed input remains available. |
 | Text-to-speech gateway | `TTS_PROVIDER=http_json`, `TTS_API_URL`, `TTS_API_KEY` | Optional | Voice synthesis | Returns `unconfigured` with no audio; text remains available. |
-| IP-SAKTI API bearer token | `API_AUTH_REQUIRED`, `API_AUTH_TOKEN`; `APP_ENV` controls production enforcement | Optional in local development; mandatory in production | Protects every `/api/*` route | In development with authentication disabled, local requests continue. If required but the token is empty, routes return `503`; a missing or incorrect bearer token returns `401`. |
+| IP-SAKTI legacy API bearer token | `API_AUTH_REQUIRED`, `API_AUTH_TOKEN`; `APP_ENV` controls protection | Optional internal compatibility for automation/admin clients | Lets non-browser clients access protected `/api/*` routes without a Google cookie session | A valid Google application session remains sufficient. If protection is required and neither session signing nor a bearer token is configured, routes return `503`. |
+
+## Google Sign-In and application sessions
+
+Set the same OAuth web client ID on the backend and frontend:
+
+```dotenv
+GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=
+SESSION_SECRET=replace-with-at-least-32-random-bytes
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+The browser receives a Google ID token, but the backend—not the browser—verifies its signature, expiry, issuer and audience. Only verified claims are used to create or locate the SQLite user account. The Google token is never persisted. A successful exchange sets a signed `HttpOnly`, `SameSite=Lax` application cookie; production also marks it `Secure`. Normal users never copy an API token into the interface or browser storage.
 
 ## Gemini
 
@@ -52,7 +67,7 @@ Prior-art, TK, regulation, translation, speech-to-text, and text-to-speech HTTP 
 
 Use a different least-privilege key for each service. The gateway must preserve genuine source identifiers and metadata. Regulatory evidence should include the authority, jurisdiction, effective/version dates, retrieval time, and an actual source URL. TK evidence must come only from sources the operator is authorized to search.
 
-## API bearer-token authentication
+## Legacy API bearer-token authentication
 
 For local development, authentication defaults to disabled:
 
@@ -62,7 +77,7 @@ API_AUTH_REQUIRED=false
 API_AUTH_TOKEN=
 ```
 
-For production:
+For production, protected routes accept either a valid Google application session or the optional legacy bearer credential. Configure the bearer only when an automation/admin client needs it:
 
 ```dotenv
 APP_ENV=production
@@ -70,7 +85,7 @@ API_AUTH_REQUIRED=true
 API_AUTH_TOKEN=
 ```
 
-Generate a strong random token outside the repository and inject it through the deployment platform's secret manager. Never reuse a provider key as the application token. Production mode enforces bearer authentication even if `API_AUTH_REQUIRED=false` was accidentally supplied.
+Generate a strong random token outside the repository and inject it through the deployment platform's secret manager. Never reuse a provider key as the application token. Production mode enforces authentication even if `API_AUTH_REQUIRED=false` was accidentally supplied, but a valid signed user session also satisfies that requirement.
 
 Clients send:
 
@@ -78,7 +93,7 @@ Clients send:
 Authorization: Bearer <application-token>
 ```
 
-The frontend Settings page can retain this **application** token in `sessionStorage` for the current browser tab. Provider credentials must never be entered into the frontend.
+The normal frontend does not request or display this credential. Provider credentials and the legacy bearer token must never be entered into the user interface.
 
 ## Explicit offline/demo fixtures
 

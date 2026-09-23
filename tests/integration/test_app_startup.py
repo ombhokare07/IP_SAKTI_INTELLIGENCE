@@ -44,9 +44,13 @@ class FakeRetriever:
 class FakeVectorStore:
     def __init__(self, count: int):
         self._count = count
+        self.closed = False
 
     def count(self) -> int:
         return self._count
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def configured_settings(tmp_path, *, secret: str = "unit-test-secret") -> Settings:
@@ -144,6 +148,7 @@ def test_configured_gemini_with_empty_store_returns_specific_response(tmp_path) 
         response = client.post("/api/chat", json={"question": "Question?"})
         status = client.get("/api/status").json()["rag"]
 
+    assert pipeline.retriever.vector_store.closed is True
     assert response.status_code == 503
     assert response.json() == {
         "detail": "Knowledge base is empty. Please ingest documents first."

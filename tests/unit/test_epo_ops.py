@@ -69,6 +69,25 @@ def test_ops_controlled_error_statuses(status,error):
  with pytest.raises(error) as e:provider(handler).search('herb')
  assert 'SECRET' not in str(e.value)
 
+def test_ops_404_without_entity_fault_is_controlled_error():
+ calls=[]
+ def handler(request):
+  calls.append(request)
+  return token() if request.url.path.endswith('accesstoken') else httpx.Response(404,text='SECRET page not found')
+ with pytest.raises(PriorArtProviderError) as e:provider(handler).search('herb')
+ assert 'SECRET' not in str(e.value) and '404' in str(e.value)
+
+def test_ops_404_entity_not_found_is_empty_results():
+ def handler(request):
+  return token() if request.url.path.endswith('accesstoken') else httpx.Response(
+   404,content=b'<fault xmlns="http://ops.epo.org"><code>SERVER.EntityNotFound</code><message>No results found</message></fault>')
+ assert provider(handler).search('herb')==[]
+
+@pytest.mark.parametrize('query',['the', 'for the', 'a', 'an', 'of with'])
+def test_ops_stop_word_query_is_empty_not_an_error(query):
+ def handler(request):pytest.fail('No request may be attempted for a stop-word-only query')
+ with pytest.raises(ValueError):provider(handler).search(query,3)
+
 @pytest.mark.parametrize('payload',[{}, {'access_token':'','expires_in':'1200'}, {'access_token':'a','expires_in':'nan'}, {'access_token':'a','expires_in':-1}, {'access_token':'a','expires_in':30,'token_type':'Basic'},[]])
 def test_ops_invalid_oauth_payloads(payload):
  with pytest.raises(PriorArtMalformedResponseError):provider(lambda _:httpx.Response(200,json=payload)).search('herb')

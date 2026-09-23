@@ -77,6 +77,10 @@ class PriorArtRiskResponse(BaseModel):
 
 class PriorArtSearchSummaryResponse(BaseModel):
     queries_run: list[str]
+    search_status: Literal["complete", "partial"]
+    queries_total: int = Field(ge=1)
+    queries_succeeded: int = Field(ge=1)
+    queries_failed: int = Field(ge=0)
     provider: str
     provider_mode: Literal["mock", "live"]
     configuration_status: Literal["mock_test_data", "live_configured"]

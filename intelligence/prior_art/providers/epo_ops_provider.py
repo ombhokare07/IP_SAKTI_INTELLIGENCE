@@ -2,6 +2,11 @@
 
 Contract: EPO OPS Reference Guide 1.3.20, sections 2.3.2 and 3.1.1.
 No example patent records are used as a fallback for an OPS failure.
+
+OPS signals "no results" with HTTP 404 plus a fault body
+(SERVER.EntityNotFound / \"No results found\"), not with an empty result
+set; that documented behaviour is treated as a successful empty search
+instead of a provider failure.
 """
 from __future__ import annotations
 
@@ -19,6 +24,14 @@ from intelligence.prior_art.providers.base import (
     PriorArtMalformedResponseError, PriorArtProviderError,
     PriorArtRateLimitError, PriorArtRecord, PriorArtTimeoutError,
 )
+
+
+_STOP = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in",
+    "is", "of", "or", "the", "to", "using", "with", "improved", "claimed",
+}
+
+_MISSING_ENTITY_FAULT = re.compile(rb"SERVER\.EntityNotFound", re.I)
 
 
 def _text(node: ET.Element | None) -> str | None:
@@ -114,6 +127,11 @@ class EPOOPSProvider:
         if response.status_code != 200:
             raise PriorArtProviderError(f"OPS returned HTTP {response.status_code}.")
 
+    @staticmethod
+    def _is_missing_entity(response: httpx.Response) -> bool:
+        """OPS reports zero matches as 404 + SERVER.EntityNotFound fault body."""
+        return response.status_code == 404 and _MISSING_ENTITY_FAULT.search(response.content) is not None
+
     def _access_token(self) -> str:
         if not self.configured:
             raise PriorArtConfigurationError("EPO OPS consumer credentials are not configured.")
@@ -143,8 +161,10 @@ class EPOOPSProvider:
     def search(self, query: str, limit: int = 10) -> list[PriorArtRecord]:
         if not query.strip() or not 1 <= limit <= 100:
             raise ValueError("A query and a limit between 1 and 100 are required.")
-        # Treat the engine's natural-language query as literal title/abstract terms.
-        terms = re.findall(r"[^\W_]+", query, flags=re.UNICODE)[:40]
+        # Treat the engine's natural-language query as literal title/abstract terms,
+        # dropping stop words so a single filler term cannot empty an AND query.
+        terms = [t for t in re.findall(r"[^\W_]+", query, flags=re.UNICODE)[:40]
+                 if t.casefold() not in _STOP]
         if not terms:
             raise ValueError("Search query contains no searchable terms.")
         cql = " AND ".join(f'ta="{term}"' for term in terms)
@@ -157,6 +177,8 @@ class EPOOPSProvider:
                 with self._lock:
                     self._token, self._expires = "", 0.0
                 continue
+            if self._is_missing_entity(response):
+                return []
             self._check(response)
             return parse_ops_xml(response.content)[:limit]
         raise PriorArtAuthenticationError("OPS authentication failed after token renewal.")

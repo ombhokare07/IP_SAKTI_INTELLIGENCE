@@ -8,6 +8,7 @@ from backend.main import app, create_app
 from config.settings import Settings
 from intelligence.patentability.patentability_engine import PatentabilityEngine
 from intelligence.prior_art.providers.base import PriorArtRateLimitError
+from intelligence.prior_art.providers.epo_ops_provider import EPOOPSProvider
 from intelligence.prior_art.providers.mock_provider import MockPriorArtProvider
 from intelligence.prior_art.search_engine import PriorArtSearchEngine
 
@@ -362,6 +363,57 @@ def test_prior_art_api_maps_rate_limit_to_controlled_error() -> None:
         "detail": "The prior-art provider rate limit was reached."
     }
     assert "secret" not in response.text
+
+
+def test_prior_art_api_treats_epo_entity_not_found_as_empty_live_search() -> None:
+    def epo_response(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("accesstoken"):
+            return httpx.Response(
+                200,
+                json={"access_token": "test-token", "expires_in": 1200},
+            )
+        return httpx.Response(
+            404,
+            content=(
+                b'<fault xmlns="http://ops.epo.org">'
+                b"<code>SERVER.EntityNotFound</code>"
+                b"<message>No results found</message></fault>"
+            ),
+        )
+
+    provider_client = httpx.Client(transport=httpx.MockTransport(epo_response))
+    provider = EPOOPSProvider("test-key", "test-secret", client=provider_client)
+
+    async def request_search() -> httpx.Response:
+        app.state.prior_art_engine = PriorArtSearchEngine(provider, _OfflineEmbedding())
+        transport = httpx.ASGITransport(app=app)
+
+        try:
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url="http://test",
+            ) as client:
+                return await client.post(
+                    "/api/prior-art/search",
+                    json={
+                        "title": "Unmatched herbal formulation",
+                        "description": "A formulation with unmatched botanical features.",
+                    },
+                )
+        finally:
+            app.state.prior_art_engine = None
+
+    try:
+        response = asyncio.run(request_search())
+    finally:
+        provider_client.close()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["search_summary"]["provider_mode"] == "live"
+    assert body["search_summary"]["records_found"] == 0
+    assert body["results"] == []
+    assert body["risk"]["level"] == "insufficient_prior_art"
 
 
 def test_patentability_api_optional_prior_art_integration(tmp_path) -> None:

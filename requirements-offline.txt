@@ -5,6 +5,6 @@ pydantic-settings==2.15.0
 pydantic==2.13.5
 httpx[socks]==0.28.1
 google-genai==1.75.0
-PyMuPDF==1.26.6
+PyMuPDF==1.26.7
 chromadb==1.5.9
-pytest==8.4.2
+pytest==9.0.3

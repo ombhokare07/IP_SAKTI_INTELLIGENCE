@@ -176,6 +176,8 @@ def test_search_engine_empty_result_is_insufficient_not_novel() -> None:
     report = PriorArtSearchEngine(StaticProvider([]), KeywordEmbedding()).search(INVENTION)
     assert report["risk"]["level"] == "insufficient_prior_art"
     assert report["results"] == []
+    assert report["search_summary"]["search_status"] == "complete"
+    assert report["search_summary"]["queries_failed"] == 0
 
 
 def test_search_engine_deduplicates_and_preserves_partial_metadata() -> None:
@@ -220,6 +222,27 @@ def test_provider_failures_are_controlled(error) -> None:
 
     with pytest.raises(type(error)):
         PriorArtSearchEngine(FailingProvider([]), KeywordEmbedding()).search(INVENTION)
+
+
+def test_partial_provider_search_is_explicitly_labelled() -> None:
+    class PartiallyFailingProvider(StaticProvider):
+        def __init__(self):
+            super().__init__([])
+            self.calls = 0
+
+        def search(self, query, limit=10):
+            self.calls += 1
+            if self.calls == 1:
+                raise PriorArtTimeoutError("timeout")
+            return []
+
+    report = PriorArtSearchEngine(PartiallyFailingProvider(), KeywordEmbedding()).search(INVENTION)
+    summary = report["search_summary"]
+
+    assert summary["search_status"] == "partial"
+    assert summary["queries_failed"] == 1
+    assert summary["queries_succeeded"] == summary["queries_total"] - 1
+    assert any("partial" in limitation for limitation in report["limitations"])
 
 
 def test_malformed_provider_record_is_controlled() -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -21,6 +22,9 @@ from intelligence.prior_art.providers.base import (
 from intelligence.prior_art.query_builder import build_prior_art_queries
 from intelligence.prior_art.result_ranker import rank_prior_art_results
 from intelligence.prior_art.similarity import SimilarityEmbeddingService, analyze_semantic_similarity
+
+
+logger = logging.getLogger(__name__)
 
 
 def _deduplication_key(record: Mapping[str, Any], fallback: int) -> str:
@@ -74,7 +78,7 @@ class PriorArtSearchEngine:
         first_failure: PriorArtProviderError | None = None
         successful_queries = 0
         cache_hits = 0
-        for query in queries:
+        for query_index, query in enumerate(queries, start=1):
             cached = self.cache.get(self.provider.name, query, limit)
             if cached is not None:
                 records = cached
@@ -85,6 +89,12 @@ class PriorArtSearchEngine:
                     records = list(self.provider.search(query, limit=limit))
                 except PriorArtProviderError as exc:
                     failures.append(str(exc))
+                    logger.warning(
+                        "Prior-art provider request failed: provider=%s query_index=%d failure_category=%s",
+                        self.provider.name,
+                        query_index,
+                        type(exc).__name__,
+                    )
                     if first_failure is None:
                         first_failure = exc
                     continue
@@ -136,6 +146,8 @@ class PriorArtSearchEngine:
             risk=risk,
             retrieval_timestamp=timestamp,
             cache_hits=cache_hits,
+            queries_succeeded=successful_queries,
+            queries_failed=len(failures),
             warnings=warnings,
         )
 

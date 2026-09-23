@@ -319,12 +319,16 @@ def create_app(
         try:
             yield
         finally:
+            vector_store = application.state.vector_store
             application.state.rag_pipeline = None
             application.state.patentability_engine = None
             application.state.prior_art_engine = None
             application.state.vector_store = None
             application.state.services.close()
             application.state.services = None
+            close_vector_store = getattr(vector_store, "close", None)
+            if callable(close_vector_store):
+                close_vector_store()
             if independent_prior is not None:
                 close = getattr(independent_prior.provider, "close", None)
                 if callable(close):

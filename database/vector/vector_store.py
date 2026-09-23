@@ -17,6 +17,7 @@ class ChromaVectorStore:
     ) -> None:
         self.path = Path(path or settings.vector_db_path)
         self.collection_name = collection_name or settings.vector_collection
+        self._owns_client = client is None
         if client is None:
             try:
                 import chromadb
@@ -29,6 +30,13 @@ class ChromaVectorStore:
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"},
         )
+
+    def close(self) -> None:
+        """Release an internally created persistent client and its SQLite handles."""
+        if self._owns_client:
+            close = getattr(self._client, "close", None)
+            if callable(close):
+                close()
 
     @staticmethod
     def _metadata(chunk: Mapping[str, Any]) -> dict[str, str | int]:

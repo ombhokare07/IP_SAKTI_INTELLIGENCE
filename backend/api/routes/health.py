@@ -48,6 +48,17 @@ def status(request:Request):
                            'indexed_chunks':(rag.get('documents') or {}).get('indexed_chunks',0)}
     rag['grounded_chat']={'status':'available' if pipeline_status=='ready' and document_status=='indexed' else 'unavailable'}
     auth_required=cfg.api_auth_required or cfg.app_env.casefold()=='production'
+    google_auth_configured=bool(cfg.google_client_id.strip() and cfg.session_secret.get_secret_value())
+    legacy_bearer_configured=bool(cfg.api_auth_token.get_secret_value())
+    authentication_status={
+      'status':'configured' if google_auth_configured else 'not_configured',
+      'google_sign_in':'configured' if google_auth_configured else 'not_configured',
+      'session_cookie':'configured' if google_auth_configured else 'not_configured',
+      'legacy_bearer':'configured' if legacy_bearer_configured else 'not_configured',
+      'legacy_bearer_required':auth_required,
+      # Backward-compatible alias for older clients; this refers only to legacy Bearer access.
+      'token_required':auth_required,
+    }
     provider_status={
       'prior_art':{'status':'configured' if prior else 'unconfigured','provider':cfg.prior_art_provider or None},
       'traditional_knowledge':{'status':'configured' if s.tk.provider else 'unconfigured','provider':cfg.tk_provider or None,
@@ -75,11 +86,12 @@ def status(request:Request):
           'execution':'online' if cfg.tts_provider=='edge_tts' else 'remote' if cfg.tts_provider=='http_json' else None,
           'requires_internet':cfg.tts_provider=='edge_tts'
       },
+      'authentication':authentication_status,
     }
     return {'status':'running','version':'1.0.0','providers':providers,'tkdl_access':False,
             'provider_status':provider_status,'rag':rag,
             'authentication_required':auth_required,
-            'authentication':{'status':'enabled' if auth_required else 'disabled','token_required':auth_required},
+            'authentication':authentication_status,
             'regulation_sync':s.regulations.sync_status,'documents':len(s.documents.list()),'reports':len(s.reports.list()),
             'configuration_errors':s.configuration_errors,
             'limitations':['Configured providers are not verified until a successful request. Offline fixtures never represent live search.']}

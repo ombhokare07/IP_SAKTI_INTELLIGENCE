@@ -72,7 +72,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-On macOS/Linux, replace the copy command with `cp .env.example .env.local`. The dashboard is available at `http://127.0.0.1:3000`.
+On macOS/Linux, replace the copy command with `cp .env.example .env.local`. The dashboard is available at `http://localhost:3000`; keep the frontend and API hostnames consistent so the HttpOnly session cookie is sent reliably.
 
 ## Production build commands
 
@@ -83,7 +83,7 @@ Backend:
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-Set `APP_ENV=production` and a strong `API_AUTH_TOKEN` before starting a production instance.
+Set `APP_ENV=production`, `GOOGLE_CLIENT_ID`, and a strong `SESSION_SECRET` before starting a browser-facing production instance. `API_AUTH_TOKEN` is optional legacy/admin automation compatibility and is never entered by normal users. See `AUTHENTICATION_SETUP.md`.
 
 Frontend:
 
@@ -155,6 +155,7 @@ Re-ingestion is required after every clean extraction because runtime Chroma dat
 - Live provider credentials and authorization are not bundled; configured status is not proof of access until a request succeeds.
 - EPO OPS coverage and availability depend on the account and the upstream service. A real search is required for a substantive novelty review.
 - No TKDL connector or content is included. TK clearance requires an independently authorized search and qualified professional review.
+- ChromaDB 1.5.9 is used only as an in-process `PersistentClient`; the project does not start or expose Chroma's network server. Current upstream Chroma server/auth advisories have no fixed PyPI release, so do not add `chroma run`, remote Chroma access, or tenant-facing collection administration until a patched release is available and verified.
 - Regulatory fixtures are illustrative and cannot substitute for current official texts. Live regulation gateways must preserve authority URLs, jurisdiction, effective dates, versions, and retrieval timestamps.
 - Offline translation is limited to deterministic AYUSH terminology normalization and safe pass-through behavior; offline voice input/output is unavailable.
 - RAG quality depends on documents ingested into the local vector collection. An empty collection yields no definitive answer.

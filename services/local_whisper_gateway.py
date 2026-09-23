@@ -7,6 +7,11 @@ import threading
 from services.provider_gateway import ProviderUnavailable
 
 
+def _default_whisper_dir() -> str:
+    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~")
+    return os.path.join(base, ".ip-sakti", "whisper-models")
+
+
 class LocalWhisperGateway:
     configured = True
 
@@ -21,7 +26,7 @@ class LocalWhisperGateway:
         self.model_name = os.getenv("IPSAKTI_WHISPER_MODEL", "small")
         self.download_root = os.getenv(
             "IPSAKTI_WHISPER_MODELS",
-            r"D:\whisper-models",
+            _default_whisper_dir(),
         )
         self._model = None
         self._lock = threading.Lock()

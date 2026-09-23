@@ -1,20 +1,24 @@
 'use client';
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
-import { Bell, LogOut, Menu, Search } from 'lucide-react';
+import { BellRing, BookOpenCheck, LogOut, Menu, Search } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { navigation } from './Sidebar';
-import { api } from '@/services/api';
-import { API_BASE } from '@/services/api';
+import { API_BASE, api } from '@/services/api';
 import type { SessionUser } from './AppShell';
+import { summarizeProviders } from '@/services/status.mjs';
 
 export default function Navbar({
   toggle,
   onToggleEvidence,
+  menuOpen,
+  evidenceOpen,
   user,
 }: {
   toggle: () => void;
   onToggleEvidence: () => void;
+  menuOpen: boolean;
+  evidenceOpen: boolean;
   user: SessionUser | null;
 }) {
   const pathname = usePathname();
@@ -22,21 +26,17 @@ export default function Navbar({
   const current = navigation.find((n) => `/${n[0]}` === pathname)?.[1] || 'Dashboard';
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState('en');
-  const [providerState, setProviderState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [providerState, setProviderState] = useState<{tone: 'loading' | 'positive' | 'attention' | 'negative'; label: string}>({tone:'loading',label:'Checking providers'});
 
   useEffect(() => {
     let active = true;
     api('/status')
       .then((data: any) => {
         if (!active) return;
-        const entries = Object.values(data?.providers || {});
-        setProviderState(
-          entries.length && entries.some((v) => !['unconfigured', 'unavailable'].includes(String(v)))
-            ? 'ready'
-            : 'unavailable',
-        );
+        const summary = summarizeProviders(data?.providers);
+        setProviderState({ tone: summary.tone as 'positive' | 'attention' | 'negative', label: summary.label });
       })
-      .catch(() => active && setProviderState('unavailable'));
+      .catch(() => active && setProviderState({tone:'negative',label:'Provider status unavailable'}));
 
     return () => {
       active = false;
@@ -70,7 +70,7 @@ export default function Navbar({
 
   return (
     <header className="topbar">
-      <button type="button" className="icon-button mobile-toggle" onClick={toggle} aria-label="Open navigation">
+      <button type="button" className="icon-button mobile-toggle" onClick={toggle} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen}>
         <Menu size={19} aria-hidden="true" />
       </button>
 
@@ -89,7 +89,6 @@ export default function Navbar({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search or ask a question..."
         />
-        <kbd>Ctrl K</kbd>
       </form>
 
       <div className="top-actions">
@@ -99,19 +98,16 @@ export default function Navbar({
             <option value="en">EN</option><option value="hi">हि</option><option value="mr">म</option>
           </select>
         </label>
-        <button type="button" className="notification-button" aria-label="Notifications"><Bell size={17} aria-hidden="true" /></button>
-        <button type="button" className="evidence-toggle" onClick={onToggleEvidence} aria-label="Toggle evidence panel" aria-controls="evidence-panel">
-          <span className="evidence-toggle__icon" aria-hidden="true">◫</span>
+        <button type="button" className="evidence-toggle" onClick={onToggleEvidence} aria-label="Toggle evidence panel" aria-controls="evidence-panel" aria-expanded={evidenceOpen}>
+          <BookOpenCheck className="evidence-toggle__icon" size={16} aria-hidden="true" />
           <span className="evidence-toggle__label">Evidence</span>
         </button>
 
-        <span className={`provider-pulse ${providerState}`}>
+        <Link href="/regulatory-alerts" className="alerts-action" aria-label="Open regulatory alerts"><BellRing size={17} aria-hidden="true"/><span className="sr-only">Regulatory alerts</span></Link>
+
+        <span className={`provider-pulse ${providerState.tone}`}>
           <i />
-          {providerState === 'loading'
-            ? 'Checking providers'
-            : providerState === 'ready'
-              ? 'Provider state: Ready'
-              : 'Provider state: Unavailable'}
+          {providerState.label}
         </span>
 
         <Link href="/settings" className="profile-link" aria-label="Open settings">

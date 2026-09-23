@@ -15,6 +15,8 @@ def build_prior_art_report(
     risk: Mapping[str, Any],
     retrieval_timestamp: str,
     cache_hits: int = 0,
+    queries_succeeded: int | None = None,
+    queries_failed: int = 0,
     warnings: Sequence[str] = (),
 ) -> dict[str, Any]:
     results = [dict(item) for item in ranked_records]
@@ -43,6 +45,10 @@ def build_prior_art_report(
     return {
         "search_summary": {
             "queries_run": list(queries),
+            "search_status": "partial" if queries_failed else "complete",
+            "queries_total": len(queries),
+            "queries_succeeded": len(queries) - queries_failed if queries_succeeded is None else queries_succeeded,
+            "queries_failed": queries_failed,
             "provider": provider,
             "provider_mode": provider_mode,
             "configuration_status": "mock_test_data" if provider_mode == "mock" else "live_configured",
