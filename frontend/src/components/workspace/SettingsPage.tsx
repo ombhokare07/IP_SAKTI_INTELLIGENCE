@@ -9,6 +9,7 @@ import { useResource } from '@/hooks/useResource';
 import { API_BASE } from '@/services/api';
 import { authSessionStatus } from '@/services/status.mjs';
 import type { AuthMeResponse, ProviderStatusValue, WorkspaceStatus } from '@/types/api';
+import { clearResourceCache } from '@/services/resource-cache';
 
 function SettingRow({ label, value, detail }: { label: string; value: ProviderStatusValue; detail: string }) {
   return <div className="setting-row"><div><strong>{label}</strong><small>{detail}</small></div><StatusBadge value={value} /></div>;
@@ -31,7 +32,7 @@ export default function SettingsPage() {
 
   const logout = async () => {
     try { await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }); }
-    finally { router.replace('/login'); router.refresh(); }
+    finally { clearResourceCache(); router.replace('/login'); router.refresh(); }
   };
 
   const data = status.data;

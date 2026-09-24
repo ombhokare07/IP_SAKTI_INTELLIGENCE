@@ -5,7 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import { API_BASE } from '@/services/api';
+import PersistentWorkspaceVisual, { sceneKeyForPath } from './three/PersistentWorkspaceVisual';
+import { getResourceSnapshot, loadResource } from '@/services/resource-cache';
+import type { AuthMeResponse } from '@/types/api';
 
 export type SessionUser = {email:string;name:string;picture:string};
 
@@ -98,12 +100,13 @@ export default function AppShell({children}:{children:React.ReactNode}) {
   const [evidenceOpen, setEvidenceOpen] = useState<boolean>(false);
   const [user, setUser] = useState<SessionUser|null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [authorizedPath, setAuthorizedPath] = useState<string|null>(null);
   const [sessionError, setSessionError] = useState('');
   const [sessionNonce, setSessionNonce] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
+  const workspaceActive = pathname !== '/login';
+  const scene = sceneKeyForPath(pathname);
 
   useEffect(() => {
     setSidebarCollapsed(localStorage.getItem('ip-sakti-sidebar-collapsed') === 'true');
@@ -116,26 +119,26 @@ export default function AppShell({children}:{children:React.ReactNode}) {
   });
 
   useEffect(() => {
-    if (pathname === '/login') {
+    if (!workspaceActive) {
       setCheckingSession(false);
-      setAuthorizedPath(pathname);
+      setSessionError('');
       return;
     }
     let active = true;
-    setCheckingSession(true);
-    setAuthorizedPath(null);
+    const cached = getResourceSnapshot<AuthMeResponse>('/auth/me');
+    if (cached.data?.authenticated && cached.data.user) {
+      setUser(cached.data.user);
+      setCheckingSession(false);
+    } else if (!user) {
+      setCheckingSession(true);
+    }
     setSessionError('');
-    fetch(`${API_BASE}/api/auth/me`, {credentials:'include'})
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Session check failed with HTTP ${response.status}.`);
-        return response.json();
-      })
+    loadResource<AuthMeResponse>('/auth/me', { force: sessionNonce > 0 })
       .then((data) => {
         if (!active) return;
         if (data?.authenticated && data.user) {
           setUser(data.user);
           setCheckingSession(false);
-          setAuthorizedPath(pathname);
           return;
         }
         router.replace('/login');
@@ -143,24 +146,25 @@ export default function AppShell({children}:{children:React.ReactNode}) {
       .catch(() => {
         if (!active) return;
         setCheckingSession(false);
-        setSessionError('The secure workspace could not reach the backend. Your session has not been treated as signed out.');
+        if (!user) setSessionError('The secure workspace could not reach the backend. Your session has not been treated as signed out.');
       });
     return () => { active = false; };
-  }, [pathname, router, sessionNonce]);
+  }, [router, sessionNonce, user, workspaceActive]);
 
-  if (pathname === '/login') return <>{children}</>;
+  if (!workspaceActive) return <>{children}</>;
 
   if (sessionError) {
     return <main className="auth-loading auth-error" role="alert"><span/><p>{sessionError}</p><button className="button secondary" type="button" onClick={() => setSessionNonce((value) => value + 1)}>Retry connection</button></main>;
   }
 
-  if (checkingSession || authorizedPath !== pathname) {
+  if (checkingSession && !user) {
     return <main className="auth-loading" aria-live="polite"><span/><p>Checking secure workspace access…</p></main>;
   }
 
   return (
-    <div className={`app-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+    <div className={`app-shell scene-${scene}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`} data-workspace-shell data-scene={scene}>
       <a className="skip-link" href="#main">Skip to content</a>
+      <PersistentWorkspaceVisual />
       <Sidebar open={sidebarOpen} collapsed={sidebarCollapsed} onClose={()=>setSidebarOpen(false)} onToggleCollapsed={toggleCollapsed} />
 
       <div className="main-shell">
@@ -172,7 +176,7 @@ export default function AppShell({children}:{children:React.ReactNode}) {
           user={user}
         />
 
-        <main id="main"><motion.div className="workspace-stage" key={pathname} initial={reduceMotion ? false : {opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:.24,ease:'easeOut'}}>{children}</motion.div></main>
+        <main id="main"><motion.div className="workspace-stage" key={pathname} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{duration:reduceMotion ? 0 : .18,ease:'easeOut'}}>{children}</motion.div></main>
 
         <footer className="workspace-footer">
           IP-SAKTI Intelligence <span>Screening scores are not legal conclusions or probabilities of patent grant.</span>

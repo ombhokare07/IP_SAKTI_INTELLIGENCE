@@ -9,6 +9,7 @@ import ResultView, { Notice } from '@/components/ResultView';
 import { ErrorState, PageHeader } from '@/components/ui/WorkspaceUI';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
+import { invalidateResource } from '@/services/resource-cache';
 import type { DocumentsResponse, PriorArtSearchResult } from '@/types/api';
 
 export type ScreeningPageName = 'ask' | 'patentability' | 'prior-art' | 'tk-risk' | 'regulation-compare' | 'document-checker' | 'compliance-journey';
@@ -124,6 +125,7 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
         kind: cfg.kind,
         ...(result.assessment_id ? { assessment_id: result.assessment_id } : { input: lastInput }),
       });
+      invalidateResource('/reports');
       setMessage('Report saved with its original evidence and limitations.');
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'The report could not be saved.');
@@ -154,7 +156,7 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
   const priorArtResult = result as PriorArtSearchResult | null;
   const partialSearch = page === 'prior-art' && priorArtResult?.search_summary?.search_status === 'partial';
 
-  return <motion.div className="feature-page" initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+  return <motion.div className="feature-page" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }}>
     <PageHeader page={page} description={cfg.description} />
     {page === 'ask' && <div className="ask-capabilities" aria-label="Question capabilities"><span><Search size={14} />Grounded search</span><span><BookOpenCheck size={14} />Citations</span><span><Mic size={14} />Voice upload</span><span><Sparkles size={14} />Responsible routing</span></div>}
 

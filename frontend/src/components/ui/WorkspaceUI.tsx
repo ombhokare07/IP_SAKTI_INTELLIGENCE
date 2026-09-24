@@ -17,7 +17,11 @@ export function ErrorState({ error, retry }: { error: string; retry?: () => void
 }
 
 export function PageHeader({ page, description, action, eyebrow = 'IP-SAKTI / INTELLIGENCE' }: { page: string; description: string; action?: ReactNode; eyebrow?: string }) {
-  return <header className="page-header"><div><span className="eyebrow">{eyebrow}</span><h1>{navigation.find((item) => item[0] === page)?.[1] || page}</h1><p>{description}</p></div>{action && <div className="page-header__action">{action}</div>}</header>;
+  return <header className={`page-header page-header--${page}`} data-scene-header={page}>
+    <div className="page-header__copy"><span className="eyebrow">{eyebrow}</span><h1>{navigation.find((item) => item[0] === page)?.[1] || page}</h1><p>{description}</p></div>
+    <div className="page-header__spatial" aria-hidden="true"><i/><i/><i/><i/><span/></div>
+    {action && <div className="page-header__action">{action}</div>}
+  </header>;
 }
 
 export function StatusBadge({ value, label }: { value: ProviderStatusValue; label?: string }) {
@@ -43,4 +47,3 @@ export function formatLocalTime(value?: string) {
     return date.toLocaleString();
   }
 }
-

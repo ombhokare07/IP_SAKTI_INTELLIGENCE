@@ -4,9 +4,12 @@ import { FormEvent, useEffect, useState } from 'react';
 import { BellRing, BookOpenCheck, LogOut, Menu, Search } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { navigation } from './Sidebar';
-import { API_BASE, api } from '@/services/api';
+import { API_BASE } from '@/services/api';
 import type { SessionUser } from './AppShell';
 import { summarizeProviders } from '@/services/status.mjs';
+import { useResource } from '@/hooks/useResource';
+import { clearResourceCache } from '@/services/resource-cache';
+import type { WorkspaceStatus } from '@/types/api';
 
 export default function Navbar({
   toggle,
@@ -26,22 +29,13 @@ export default function Navbar({
   const current = navigation.find((n) => `/${n[0]}` === pathname)?.[1] || 'Dashboard';
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState('en');
-  const [providerState, setProviderState] = useState<{tone: 'loading' | 'positive' | 'attention' | 'negative'; label: string}>({tone:'loading',label:'Checking providers'});
-
-  useEffect(() => {
-    let active = true;
-    api('/status')
-      .then((data: any) => {
-        if (!active) return;
-        const summary = summarizeProviders(data?.providers);
-        setProviderState({ tone: summary.tone as 'positive' | 'attention' | 'negative', label: summary.label });
-      })
-      .catch(() => active && setProviderState({tone:'negative',label:'Provider status unavailable'}));
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const status = useResource<WorkspaceStatus>('/status');
+  const providerSummary = status.data ? summarizeProviders(status.data.providers) : null;
+  const providerState: { tone: 'loading' | 'positive' | 'attention' | 'negative'; label: string } = status.error
+    ? { tone: 'negative', label: 'Provider status unavailable' }
+    : providerSummary
+      ? { tone: providerSummary.tone as 'positive' | 'attention' | 'negative', label: providerSummary.label }
+      : { tone: 'loading', label: 'Checking providers' };
 
   useEffect(() => {
     setLanguage(localStorage.getItem('ip-sakti-language') || 'en');
@@ -63,6 +57,7 @@ export default function Navbar({
     try {
       await fetch(`${API_BASE}/api/auth/logout`, {method:'POST', credentials:'include'});
     } finally {
+      clearResourceCache();
       router.replace('/login');
       router.refresh();
     }

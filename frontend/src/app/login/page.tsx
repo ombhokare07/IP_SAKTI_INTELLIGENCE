@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import DynamicIntelligenceVisual from '@/components/three/DynamicIntelligenceVisual';
 import { API_BASE } from '@/services/api';
+import { invalidateResource } from '@/services/resource-cache';
 
 const capabilities = [
   [ShieldCheck, 'Patents'],
@@ -67,7 +68,8 @@ export default function LoginPage() {
         : data?.mode === 'account_created'
           ? 'Workspace account created. Opening your secure workspace…'
           : 'Identity verified. Opening your secure workspace…');
-      window.setTimeout(() => { router.replace('/'); router.refresh(); }, 850);
+      invalidateResource('/auth/me');
+      window.setTimeout(() => { router.replace('/'); router.refresh(); }, 280);
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'Google sign-in could not be verified.');
       setSigningIn(false);
@@ -76,7 +78,7 @@ export default function LoginPage() {
 
   return <main className="login-page">
     <div className="login-aurora" aria-hidden="true"><i /><i /><i /></div>
-    <motion.section className="login-story" initial={reduceMotion ? false : { opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .42 }} aria-labelledby="login-story-title">
+    <motion.section className="login-story" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reduceMotion ? 0 : .42 }} aria-labelledby="login-story-title">
       <div className="login-story__brand"><span><Leaf size={22} /></span><div><strong>IP-SAKTI</strong><small>INTELLIGENCE</small></div></div>
       <div className="login-story__copy"><span className="eyebrow">AYUSH / RESPONSIBLE INTELLIGENCE</span><h1 id="login-story-title">Protect Innovation.<br /><em>Preserve Knowledge.</em></h1><p>Evidence-grounded IP &amp; Regulatory Intelligence for AYUSH Innovation</p></div>
       <div className="login-capabilities">{capabilities.map(([Icon, label]) => <span key={label}><Icon size={14} />{label}</span>)}</div>
@@ -85,7 +87,7 @@ export default function LoginPage() {
     </motion.section>
 
     <section className="login-auth-wrap">
-      <motion.div className="login-card" initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .38, delay: .08 }} aria-labelledby="login-title">
+      <motion.div className="login-card" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .38, delay: reduceMotion ? 0 : .08 }} aria-labelledby="login-title">
         <div className="login-brand"><span><Leaf size={22} /></span><div><strong>IP-SAKTI</strong><small>Intelligence workspace</small></div></div>
         <div className="login-intro"><span><LockKeyhole size={13} /> SECURE WORKSPACE</span><h2 id="login-title">{mode === 'signin' ? 'Welcome back.' : 'Create your account.'}</h2><p>{mode === 'signin' ? 'Continue to your evidence-grounded IP and regulatory intelligence workspace.' : 'Start your evidence-grounded innovation journey with IP-SAKTI.'}</p></div>
         <div className="login-mode" role="tablist" aria-label="Account access mode">

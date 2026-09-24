@@ -1,11 +1,31 @@
 'use client';
 
-import DashboardPage from '@/components/dashboard/DashboardPage';
-import ScreeningPage, { type ScreeningPageName } from '@/components/features/ScreeningPage';
-import KnowledgeLibraryPage from '@/components/workspace/KnowledgeLibraryPage';
-import { RegulationChangesPage, RegulatoryAlertsPage } from '@/components/workspace/MonitoringPages';
-import ReportsPage from '@/components/workspace/ReportsPage';
-import SettingsPage from '@/components/workspace/SettingsPage';
+import dynamic from 'next/dynamic';
+import type { ScreeningPageName } from '@/components/features/ScreeningPage';
+
+function ModuleSkeleton() {
+  return <div className="module-skeleton" role="status" aria-label="Loading workspace module">
+    <span className="module-skeleton__eyebrow" />
+    <span className="module-skeleton__title" />
+    <span className="module-skeleton__copy" />
+    <div className="module-skeleton__surface"><i /><i /><i /></div>
+  </div>;
+}
+
+const loading = () => <ModuleSkeleton />;
+const DashboardPage = dynamic(() => import('@/components/dashboard/DashboardPage'), { loading });
+const ScreeningPage = dynamic(() => import('@/components/features/ScreeningPage'), { loading });
+const KnowledgeLibraryPage = dynamic(() => import('@/components/workspace/KnowledgeLibraryPage'), { loading });
+const RegulationChangesPage = dynamic(
+  () => import('@/components/workspace/MonitoringPages').then((module) => module.RegulationChangesPage),
+  { loading },
+);
+const RegulatoryAlertsPage = dynamic(
+  () => import('@/components/workspace/MonitoringPages').then((module) => module.RegulatoryAlertsPage),
+  { loading },
+);
+const ReportsPage = dynamic(() => import('@/components/workspace/ReportsPage'), { loading });
+const SettingsPage = dynamic(() => import('@/components/workspace/SettingsPage'), { loading });
 
 const screeningPages = new Set<ScreeningPageName>([
   'ask',

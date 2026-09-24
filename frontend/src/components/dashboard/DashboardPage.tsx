@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import DynamicIntelligenceVisual from '@/components/three/DynamicIntelligenceVisual';
 import { Empty } from '@/components/ResultView';
 import { ErrorState, LoadingState, StatusBadge, formatLocalTime } from '@/components/ui/WorkspaceUI';
 import { useResource } from '@/hooks/useResource';
@@ -93,7 +92,7 @@ export default function DashboardPage() {
     ['Google session', authSessionStatus(status.data)],
   ] as const;
 
-  return <motion.div className="dashboard-page" initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
+  return <motion.div className="dashboard-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduceMotion ? 0 : .18 }}>
     <section className="dashboard-hero" aria-labelledby="dashboard-title">
       <div className="dashboard-hero__copy">
         <span className="eyebrow">AYUSH / EVIDENCE INTELLIGENCE</span>
@@ -108,13 +107,13 @@ export default function DashboardPage() {
           <small>Searches run only after submission and retain their source scope and limitations.</small>
         </form>
       </div>
-      <div className="dashboard-hero__visual"><DynamicIntelligenceVisual /><div className="visual-caption"><span>Evidence network</span><strong>Trace claims to sources</strong></div></div>
+      <div className="dashboard-hero__visual" aria-hidden="true"><div className="hero-lattice"><i/><i/><i/><i/><i/><i/></div><div className="visual-caption"><span>Evidence network</span><strong>Trace claims to sources</strong></div></div>
     </section>
 
     {(status.error || reports.error) && <ErrorState error={[status.error, reports.error].filter(Boolean).join(' · ')} retry={status.error ? status.reload : reports.reload} />}
 
     <section className="kpi-grid" aria-label="Workspace metrics">
-      {kpis.map(({ label, value, detail, icon: Icon }, index) => <motion.article className="kpi-card" key={label} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .04 }}>
+      {kpis.map(({ label, value, detail, icon: Icon }, index) => <motion.article className="kpi-card" key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .18, delay: reduceMotion ? 0 : index * .04 }}>
         <span className="kpi-card__icon"><Icon size={18} aria-hidden="true" /></span><div><span>{label}</span><strong>{value}</strong><p>{detail}</p></div>
       </motion.article>)}
     </section>

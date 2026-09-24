@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import {
   BellRing,
@@ -48,6 +48,7 @@ const groups = [
 
 export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {open: boolean; collapsed: boolean; onClose: () => void; onToggleCollapsed: () => void}) {
   const path = usePathname();
+  const router = useRouter();
   const sidebarRef = useRef<HTMLElement>(null);
   const isActive = (slug: string) => path === `/${slug}` || (path === '/' && slug === 'dashboard');
 
@@ -71,6 +72,24 @@ export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {
     return () => { document.removeEventListener('keydown', close); document.body.style.overflow = ''; previous?.focus(); };
   }, [open, onClose]);
 
+  useEffect(() => {
+    const remaining = navigation
+      .map(([slug]) => `/${slug}`)
+      .filter((href) => !['/dashboard', '/ask', '/patentability', '/prior-art', '/reports'].includes(href));
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const prefetch = () => remaining.forEach((href) => router.prefetch(href));
+    const id = idleWindow.requestIdleCallback
+      ? idleWindow.requestIdleCallback(prefetch, { timeout: 1800 })
+      : window.setTimeout(prefetch, 900);
+    return () => {
+      if (idleWindow.cancelIdleCallback) idleWindow.cancelIdleCallback(id);
+      else window.clearTimeout(id);
+    };
+  }, [router]);
+
   return <>
     {open && <button className="nav-scrim visible" aria-label="Close navigation" onClick={onClose}/>}
     <aside ref={sidebarRef} className={`sidebar ${open ? 'open' : ''}${collapsed ? ' collapsed' : ''}`} aria-label="Workspace navigation">
@@ -88,7 +107,7 @@ export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {
           {slugs.map((slug) => {
             const item = navigation.find((entry) => entry[0] === slug)!;
             const Icon = item[2];
-            return <Link key={slug} href={`/${slug}`} onClick={onClose} aria-current={isActive(slug) ? 'page' : undefined} className={isActive(slug) ? 'active' : ''} title={item[1]}>
+            return <Link key={slug} href={`/${slug}`} prefetch={['dashboard', 'ask', 'patentability', 'prior-art', 'reports'].includes(slug)} onClick={onClose} aria-current={isActive(slug) ? 'page' : undefined} className={isActive(slug) ? 'active' : ''} title={item[1]}>
               <span className="nav-symbol" aria-hidden="true"><Icon size={17}/></span>
               <span>{item[1]}</span>
             </Link>;
