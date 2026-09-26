@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -25,6 +25,7 @@ import { ErrorState, LoadingState, StatusBadge, formatLocalTime } from '@/compon
 import { useResource } from '@/hooks/useResource';
 import { authSessionStatus, countConnectedProviders, describeStatus } from '@/services/status.mjs';
 import { describeMode } from '@/services/protocol.mjs';
+import { setSceneHover, setSceneMetrics, setScenePhase } from '@/services/scene-signals.mjs';
 import type { ReportsResponse, WorkspaceStatus } from '@/types/api';
 
 const capabilities = [
@@ -69,8 +70,16 @@ export default function DashboardPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (question.trim()) router.push(`/ask?question=${encodeURIComponent(question.trim())}`);
+    if (question.trim()) { setScenePhase('submitting', 'question'); router.push(`/ask?question=${encodeURIComponent(question.trim())}`); }
   };
+
+  useEffect(() => {
+    setSceneMetrics({
+      density: typeof chunks === 'number' ? chunks : undefined,
+      nodeCount: status.data ? connected : undefined,
+      providerTone: status.error ? 'unavailable' : providerTotal && connected === providerTotal ? 'ready' : connected ? 'partial' : 'neutral',
+    });
+  }, [chunks, connected, providerTotal, status.data, status.error]);
 
   const kpis = [
     { label: 'Indexed chunks', value: status.busy ? 'Checking…' : typeof chunks === 'number' ? String(chunks) : 'Unavailable', detail: 'Knowledge material reported by the backend.', icon: Database },
@@ -99,11 +108,11 @@ export default function DashboardPage() {
         <h1 id="dashboard-title">IP-SAKTI <em>Intelligence</em></h1>
         <p>Evidence-grounded IP &amp; Regulatory Intelligence for AYUSH Innovation</p>
         <div className="capability-chips" aria-label="Workspace capabilities">
-          {capabilities.map(([Icon, label]) => <span key={label}><Icon size={14} aria-hidden="true" />{label}</span>)}
+          {capabilities.map(([Icon, label]) => <span key={label} onPointerEnter={() => setSceneHover(label)} onPointerLeave={() => setSceneHover()}><Icon size={14} aria-hidden="true" />{label}</span>)}
         </div>
         <form className="hero-query" onSubmit={submit}>
           <label htmlFor="dashboard-question">What would you like to investigate?</label>
-          <div><Search size={18} aria-hidden="true" /><input id="dashboard-question" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about a formulation, claim, source or market…" required /><button className="button primary" type="submit">Investigate <ArrowUpRight size={16} /></button></div>
+          <div><Search size={18} aria-hidden="true" /><input id="dashboard-question" value={question} onChange={(event) => { setQuestion(event.target.value); setScenePhase(event.target.value ? 'input' : 'idle'); }} placeholder="Ask about a formulation, claim, source or market…" required /><button className="button primary" type="submit">Investigate <ArrowUpRight size={16} /></button></div>
           <small>Searches run only after submission and retain their source scope and limitations.</small>
         </form>
       </div>
@@ -113,18 +122,18 @@ export default function DashboardPage() {
     {(status.error || reports.error) && <ErrorState error={[status.error, reports.error].filter(Boolean).join(' · ')} retry={status.error ? status.reload : reports.reload} />}
 
     <section className="kpi-grid" aria-label="Workspace metrics">
-      {kpis.map(({ label, value, detail, icon: Icon }, index) => <motion.article className="kpi-card" key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .18, delay: reduceMotion ? 0 : index * .04 }}>
+      {kpis.map(({ label, value, detail, icon: Icon }, index) => <motion.article className="kpi-card depth-card" key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .18, delay: reduceMotion ? 0 : index * .04 }}>
         <span className="kpi-card__icon"><Icon size={18} aria-hidden="true" /></span><div><span>{label}</span><strong>{value}</strong><p>{detail}</p></div>
       </motion.article>)}
     </section>
 
     <section className="dashboard-section" aria-labelledby="quick-actions-title">
       <div className="section-title"><div><span className="eyebrow">QUICK ACTIONS</span><h2 id="quick-actions-title">Start from the question that matters.</h2></div><p>Each workflow keeps evidence, limits and next steps together.</p></div>
-      <div className="quick-action-grid">{quickActions.map(({ href, title, copy, icon: Icon, tone }) => <Link className={`quick-action ${tone}`} href={href} key={href}><span><Icon size={20} aria-hidden="true" /></span><div><strong>{title}</strong><small>{copy}</small></div><ArrowUpRight size={16} aria-hidden="true" /></Link>)}</div>
+      <div className="quick-action-grid">{quickActions.map(({ href, title, copy, icon: Icon, tone }) => <Link className={`quick-action depth-card ${tone}`} href={href} key={href} onPointerEnter={() => setSceneHover(title)} onPointerLeave={() => setSceneHover()}><span><Icon size={20} aria-hidden="true" /></span><div><strong>{title}</strong><small>{copy}</small></div><ArrowUpRight size={16} aria-hidden="true" /></Link>)}</div>
     </section>
 
     <div className="dashboard-detail-grid">
-      <section className="panel readiness-panel"><div className="section-title"><div><span className="eyebrow">SYSTEM READINESS</span><h2>What is actually available</h2></div><Link href="/settings">Inspect settings <ArrowUpRight size={14} /></Link></div>
+      <section className="panel readiness-panel depth-card"><div className="section-title"><div><span className="eyebrow">SYSTEM READINESS</span><h2>What is actually available</h2></div><Link href="/settings">Inspect settings <ArrowUpRight size={14} /></Link></div>
         {status.busy ? <LoadingState label="Checking provider readiness…" /> : <div className="readiness-list">{readiness.map(([label, value]) => <div key={label}><span>{label}</span><StatusBadge value={value} /></div>)}</div>}
         <p className="fine-print">A provider state describes availability only. It is not evidence, verification, legal clearance or a search result.</p>
       </section>

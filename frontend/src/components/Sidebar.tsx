@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   BellRing,
   BookOpen,
@@ -108,6 +109,7 @@ export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {
             const item = navigation.find((entry) => entry[0] === slug)!;
             const Icon = item[2];
             return <Link key={slug} href={`/${slug}`} prefetch={['dashboard', 'ask', 'patentability', 'prior-art', 'reports'].includes(slug)} onClick={onClose} aria-current={isActive(slug) ? 'page' : undefined} className={isActive(slug) ? 'active' : ''} title={item[1]}>
+              {isActive(slug) && <motion.span className="nav-active-rail" layoutId="workspace-nav-active" transition={{ type: 'spring', stiffness: 440, damping: 38 }} />}
               <span className="nav-symbol" aria-hidden="true"><Icon size={17}/></span>
               <span>{item[1]}</span>
             </Link>;

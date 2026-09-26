@@ -1,6 +1,6 @@
 'use client';
 
-import { type KeyboardEvent, useEffect, useState } from 'react';
+import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react';
 import { CredentialResponse, GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { BookOpen, CheckCircle2, Globe2, Languages, Leaf, LockKeyhole, Scale, ShieldAlert, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -23,6 +23,9 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState('');
   const [signingIn, setSigningIn] = useState(false);
+  const [capabilityHover, setCapabilityHover] = useState('');
+  const cardRef = useRef<HTMLDivElement>(null);
+  const glowFrame = useRef(0);
   const reduceMotion = useReducedMotion();
   const router = useRouter();
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -35,6 +38,20 @@ export default function LoginPage() {
       .catch(() => undefined);
     return () => { active = false; };
   }, [router]);
+
+  useEffect(() => () => { if (glowFrame.current) window.cancelAnimationFrame(glowFrame.current); }, []);
+
+  const moveGlow = (event: PointerEvent<HTMLDivElement>) => {
+    if (reduceMotion || window.innerWidth < 768) return;
+    const x = event.clientX; const y = event.clientY;
+    if (glowFrame.current) window.cancelAnimationFrame(glowFrame.current);
+    glowFrame.current = window.requestAnimationFrame(() => {
+      const bounds = cardRef.current?.getBoundingClientRect();
+      if (!bounds || !cardRef.current) return;
+      cardRef.current.style.setProperty('--login-glow-x', `${((x - bounds.left) / bounds.width) * 100}%`);
+      cardRef.current.style.setProperty('--login-glow-y', `${((y - bounds.top) / bounds.height) * 100}%`);
+    });
+  };
 
   const selectMode = (next: 'signin' | 'signup') => {
     if (signingIn) return;
@@ -81,13 +98,13 @@ export default function LoginPage() {
     <motion.section className="login-story" initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reduceMotion ? 0 : .42 }} aria-labelledby="login-story-title">
       <div className="login-story__brand"><span><Leaf size={22} /></span><div><strong>IP-SAKTI</strong><small>INTELLIGENCE</small></div></div>
       <div className="login-story__copy"><span className="eyebrow">AYUSH / RESPONSIBLE INTELLIGENCE</span><h1 id="login-story-title">Protect Innovation.<br /><em>Preserve Knowledge.</em></h1><p>Evidence-grounded IP &amp; Regulatory Intelligence for AYUSH Innovation</p></div>
-      <div className="login-capabilities">{capabilities.map(([Icon, label]) => <span key={label}><Icon size={14} />{label}</span>)}</div>
-      <div className="login-scene"><DynamicIntelligenceVisual /><div className="login-scene__legend"><span>Evidence nodes</span><span>Source-aware reasoning</span></div></div>
+      <div className="login-capabilities">{capabilities.map(([Icon, label]) => <span key={label} onPointerEnter={() => setCapabilityHover(label)} onPointerLeave={() => setCapabilityHover('')}><Icon size={14} />{label}</span>)}</div>
+      <div className="login-scene"><DynamicIntelligenceVisual phase={success ? 'success' : signingIn ? 'signing-in' : 'idle'} hover={capabilityHover} /><div className="login-scene__legend"><span>Evidence nodes</span><span>Source-aware reasoning</span></div></div>
       <p className="login-story__quote">“Traditional wisdom deserves modern protection.”</p>
     </motion.section>
 
     <section className="login-auth-wrap">
-      <motion.div className="login-card" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .38, delay: reduceMotion ? 0 : .08 }} aria-labelledby="login-title">
+      <motion.div ref={cardRef} className="login-card" onPointerMove={moveGlow} onPointerLeave={() => { cardRef.current?.style.setProperty('--login-glow-x', '50%'); cardRef.current?.style.setProperty('--login-glow-y', '50%'); }} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .38, delay: reduceMotion ? 0 : .08 }} aria-labelledby="login-title">
         <div className="login-brand"><span><Leaf size={22} /></span><div><strong>IP-SAKTI</strong><small>Intelligence workspace</small></div></div>
         <div className="login-intro"><span><LockKeyhole size={13} /> SECURE WORKSPACE</span><h2 id="login-title">{mode === 'signin' ? 'Welcome back.' : 'Create your account.'}</h2><p>{mode === 'signin' ? 'Continue to your evidence-grounded IP and regulatory intelligence workspace.' : 'Start your evidence-grounded innovation journey with IP-SAKTI.'}</p></div>
         <div className="login-mode" role="tablist" aria-label="Account access mode">

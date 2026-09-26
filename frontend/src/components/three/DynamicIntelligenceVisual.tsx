@@ -33,7 +33,7 @@ export function StaticIntelligenceVisual({ compact = false }: { compact?: boolea
   </figure>;
 }
 
-export default function DynamicIntelligenceVisual({ className = '', compact = false }: { className?: string; compact?: boolean }) {
+export default function DynamicIntelligenceVisual({ className = '', compact = false, phase = 'idle', hover = '' }: { className?: string; compact?: boolean; phase?: 'idle' | 'signing-in' | 'success'; hover?: string }) {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -51,7 +51,6 @@ export default function DynamicIntelligenceVisual({ className = '', compact = fa
 
   const fallback = <StaticIntelligenceVisual compact={compact} />;
   return <div className={`intelligence-visual ${className}`} aria-hidden="true">
-    {enabled ? <SceneBoundary fallback={fallback}><IntelligenceScene /></SceneBoundary> : fallback}
+    {enabled ? <SceneBoundary fallback={fallback}><IntelligenceScene phase={phase} hover={hover} /></SceneBoundary> : fallback}
   </div>;
 }
-

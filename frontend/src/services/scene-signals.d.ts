@@ -1,0 +1,28 @@
+export type ScenePhase = 'idle' | 'input' | 'submitting' | 'processing' | 'success' | 'partial' | 'error';
+export type ProviderTone = 'ready' | 'partial' | 'unavailable' | 'neutral';
+export type SceneSignal = {
+  route: string;
+  phase: ScenePhase;
+  phaseStartedAt: number;
+  pulseAt: number;
+  pulseKind: string;
+  nodeCount?: number;
+  density?: number;
+  score?: number;
+  jurisdictions: string[];
+  hover: string;
+  providerTone: ProviderTone;
+  riskTone?: 'low' | 'medium' | 'high';
+  documentSelected: boolean;
+};
+export function normalizeSceneCount(value: unknown, cap?: number): number | undefined;
+export function normalizeSceneScore(value: unknown): number | undefined;
+export function normalizeJurisdictions(value: unknown): string[];
+export function normalizeProviderTone(value: unknown): ProviderTone;
+export function normalizeRiskTone(value: unknown): 'low' | 'medium' | 'high' | undefined;
+export function getSceneSignal(): SceneSignal;
+export function setSceneRoute(route: string): void;
+export function setScenePhase(phase: ScenePhase, pulseKind?: string): void;
+export function pulseScene(kind?: string): void;
+export function setSceneMetrics(patch: Partial<Pick<SceneSignal, 'nodeCount' | 'density' | 'score' | 'jurisdictions' | 'providerTone' | 'riskTone' | 'documentSelected'>>): void;
+export function setSceneHover(value?: string): void;

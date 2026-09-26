@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import PersistentWorkspaceVisual, { sceneKeyForPath } from './three/PersistentWorkspaceVisual';
+import DepthCardController from './ui/DepthCardController';
 import { getResourceSnapshot, loadResource } from '@/services/resource-cache';
 import type { AuthMeResponse } from '@/types/api';
 
@@ -164,6 +165,7 @@ export default function AppShell({children}:{children:React.ReactNode}) {
   return (
     <div className={`app-shell scene-${scene}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`} data-workspace-shell data-scene={scene}>
       <a className="skip-link" href="#main">Skip to content</a>
+      <DepthCardController />
       <PersistentWorkspaceVisual />
       <Sidebar open={sidebarOpen} collapsed={sidebarCollapsed} onClose={()=>setSidebarOpen(false)} onToggleCollapsed={toggleCollapsed} />
 

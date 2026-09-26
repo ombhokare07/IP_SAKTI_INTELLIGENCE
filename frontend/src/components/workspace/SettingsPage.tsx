@@ -7,7 +7,8 @@ import { Notice } from '@/components/ResultView';
 import { ErrorState, LoadingState, PageHeader, StatusBadge } from '@/components/ui/WorkspaceUI';
 import { useResource } from '@/hooks/useResource';
 import { API_BASE } from '@/services/api';
-import { authSessionStatus } from '@/services/status.mjs';
+import { authSessionStatus, countConnectedProviders } from '@/services/status.mjs';
+import { setSceneMetrics } from '@/services/scene-signals.mjs';
 import type { AuthMeResponse, ProviderStatusValue, WorkspaceStatus } from '@/types/api';
 import { clearResourceCache } from '@/services/resource-cache';
 
@@ -41,13 +42,22 @@ export default function SettingsPage() {
   const auth = data?.authentication;
   const googleSession = authSessionStatus(data);
   const account = session.data?.user;
+  const providerTotal = Object.keys(data?.providers || {}).length;
+  const connectedProviders = countConnectedProviders(data?.providers || {});
+
+  useEffect(() => {
+    setSceneMetrics({
+      nodeCount: status.data ? connectedProviders : undefined,
+      providerTone: status.error ? 'unavailable' : providerTotal && connectedProviders === providerTotal ? 'ready' : connectedProviders ? 'partial' : 'neutral',
+    });
+  }, [connectedProviders, providerTotal, status.data, status.error]);
 
   return <div className="workspace-page settings-page">
     <PageHeader page="settings" description="Inspect exact backend readiness, evidence connectors, language and voice capabilities, and your authenticated Google session." />
     {message && <Notice>{message}</Notice>}
     {status.error && <ErrorState error={status.error} retry={status.reload} />}
     {status.busy ? <LoadingState label="Checking workspace configuration…" /> : <div className="settings-grid">
-      <section className="panel settings-group"><header><span><Database size={18} /></span><div><span className="eyebrow">AI &amp; KNOWLEDGE</span><h2>Grounding readiness</h2></div></header>
+      <section className="panel settings-group depth-card"><header><span><Database size={18} /></span><div><span className="eyebrow">AI &amp; KNOWLEDGE</span><h2>Grounding readiness</h2></div></header>
         <SettingRow label="Gemini" value={data?.rag?.gemini_readiness} detail="Model readiness reported by the backend pipeline." />
         <SettingRow label="RAG workspace" value={data?.rag} detail="Ready only when the retrieval pipeline and index are usable." />
         <SettingRow label="Embeddings" value={data?.rag?.embeddings} detail={`Model: ${data?.rag?.embeddings?.model || 'not reported'}.`} />
@@ -55,7 +65,7 @@ export default function SettingsPage() {
         <SettingRow label="Knowledge base" value={data?.rag?.knowledge_base} detail={`${data?.rag?.knowledge_base?.indexed_chunks ?? 0} indexed chunks reported.`} />
       </section>
 
-      <section className="panel settings-group"><header><span><Globe2 size={18} /></span><div><span className="eyebrow">EVIDENCE CONNECTORS</span><h2>Research sources</h2></div></header>
+      <section className="panel settings-group depth-card"><header><span><Globe2 size={18} /></span><div><span className="eyebrow">EVIDENCE CONNECTORS</span><h2>Research sources</h2></div></header>
         <SettingRow label="Patent / EPO search" value={data?.providers?.prior_art} detail="Configured access remains unverified until a successful provider request." />
         <SettingRow label="Traditional knowledge" value={data?.providers?.traditional_knowledge} detail={tkDetails.authorized === true ? 'Backend reports an authorized configured provider.' : 'Authorization has not been reported; no final TK clearance is possible.'} />
         <SettingRow label="TKDL" value={tkDetails.tkdl_connected === true ? 'connected' : 'not_connected'} detail={tkDetails.tkdl_connected === true ? 'The backend reports a TKDL connection.' : 'TKDL Not Connected. No bundled TKDL integration is implied.'} />

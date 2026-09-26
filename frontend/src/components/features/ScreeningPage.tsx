@@ -10,6 +10,7 @@ import { ErrorState, PageHeader } from '@/components/ui/WorkspaceUI';
 import { api } from '@/services/api';
 import { useResource } from '@/hooks/useResource';
 import { invalidateResource } from '@/services/resource-cache';
+import { pulseScene, setSceneMetrics, setScenePhase } from '@/services/scene-signals.mjs';
 import type { DocumentsResponse, PriorArtSearchResult } from '@/types/api';
 
 export type ScreeningPageName = 'ask' | 'patentability' | 'prior-art' | 'tk-risk' | 'regulation-compare' | 'document-checker' | 'compliance-journey';
@@ -74,7 +75,33 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
     }));
   }, [page]);
 
-  const set = (key: keyof Values, value: string) => setValues((current) => ({ ...current, [key]: value }));
+  useEffect(() => {
+    setSceneMetrics({
+      jurisdictions: page === 'regulation-compare' ? countries : complianceFlow ? [values.jurisdiction] : [],
+      documentSelected: complianceFlow && Boolean(values.document_id || values.document_text.trim()),
+    });
+  }, [complianceFlow, countries, page, values.document_id, values.document_text, values.jurisdiction]);
+
+  useEffect(() => {
+    if (!result) return;
+    const routed = result?.routing?.primary ? result?.results?.[result.routing.primary] : null;
+    const data = routed || result;
+    const actualRecords = Array.isArray(data?.results) ? data.results : Array.isArray(data?.matches) ? data.matches : Array.isArray(data?.checks) ? data.checks : Array.isArray(data?.steps) ? data.steps : undefined;
+    const citations = Array.isArray(result?.citations) ? result.citations : Array.isArray(data?.citations) ? data.citations : undefined;
+    const similarity = Array.isArray(data?.results) && typeof data.results[0]?.similarity?.overall_similarity === 'number' ? data.results[0].similarity.overall_similarity : undefined;
+    const readiness = typeof data?.assessment?.readiness?.score === 'number' ? data.assessment.readiness.score : similarity;
+    const completedJourneySteps = page === 'compliance-journey' && Array.isArray(data?.steps)
+      ? data.steps.filter((step: any) => ['complete', 'completed', 'done'].includes(String(step?.status || '').toLowerCase())).length
+      : undefined;
+    const tkRisk = page === 'tk-risk' ? String(data?.risk?.level || '') : '';
+    setSceneMetrics({
+      nodeCount: completedJourneySteps ?? actualRecords?.length ?? citations?.length,
+      score: readiness,
+      riskTone: tkRisk.startsWith('high_') ? 'high' : tkRisk.startsWith('moderate_') ? 'medium' : tkRisk.startsWith('low_') ? 'low' : undefined,
+    });
+  }, [page, result]);
+
+  const set = (key: keyof Values, value: string) => { setValues((current) => ({ ...current, [key]: value })); if (!busy) setScenePhase(value ? 'input' : 'idle'); };
 
   const payload = useMemo(() => {
     if (page === 'ask') return { question: values.question, language: values.language, ...(values.intent ? { intent: values.intent } : {}) };
@@ -104,13 +131,17 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (busy) return;
-    setBusy(true); setError(''); setMessage(''); setResult(null);
+    setBusy(true); setError(''); setMessage(''); setResult(null); setScenePhase('submitting', page);
     try {
+      setScenePhase('processing');
       const response = await api(cfg.endpoint, payload);
       setResult(response);
       setLastInput(payload);
+      const isPartial = page === 'prior-art' && response?.search_summary?.search_status === 'partial';
+      setScenePhase(isPartial ? 'partial' : 'success', isPartial ? 'partial-search' : 'complete');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The screening request could not be completed.');
+      setScenePhase('error', 'request-error');
     } finally {
       setBusy(false);
     }
@@ -127,6 +158,7 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
       });
       invalidateResource('/reports');
       setMessage('Report saved with its original evidence and limitations.');
+      pulseScene('report-saved');
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'The report could not be saved.');
     } finally {

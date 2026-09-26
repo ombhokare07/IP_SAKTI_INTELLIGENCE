@@ -3,6 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
+import { setSceneRoute } from '@/services/scene-signals.mjs';
 
 const PersistentWorkspaceScene = dynamic(() => import('./PersistentWorkspaceScene'), {
   ssr: false,
@@ -52,6 +53,8 @@ export default function PersistentWorkspaceVisual() {
   const pathname = usePathname();
   const scene = useMemo(() => sceneKeyForPath(pathname), [pathname]);
   const [renderMode, setRenderMode] = useState<'fallback' | 'compact' | 'full'>('fallback');
+
+  useEffect(() => setSceneRoute(scene), [scene]);
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
