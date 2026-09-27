@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -9,6 +9,7 @@ import PersistentWorkspaceVisual, { sceneKeyForPath } from './three/PersistentWo
 import DepthCardController from './ui/DepthCardController';
 import { getResourceSnapshot, loadResource } from '@/services/resource-cache';
 import type { AuthMeResponse } from '@/types/api';
+import { beginSceneTransition, normalizeSceneRoute } from '@/services/scene-signals.mjs';
 
 export type SessionUser = {email:string;name:string;picture:string};
 
@@ -109,6 +110,23 @@ export default function AppShell({children}:{children:React.ReactNode}) {
   const workspaceActive = pathname !== '/login';
   const scene = sceneKeyForPath(pathname);
 
+  const beginLinkTransition = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (
+      event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey ||
+      event.shiftKey || event.altKey
+    ) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest<HTMLAnchorElement>('a[href]');
+    if (!anchor || anchor.hasAttribute('download') || anchor.relList.contains('external')) return;
+    const anchorTarget = anchor.getAttribute('target');
+    if (anchorTarget && anchorTarget !== '_self') return;
+    const destination = new URL(anchor.href, window.location.href);
+    if (destination.origin !== window.location.origin || destination.pathname === window.location.pathname) return;
+    const route = normalizeSceneRoute(destination.pathname);
+    if (route) beginSceneTransition(route);
+  };
+
   useEffect(() => {
     setSidebarCollapsed(localStorage.getItem('ip-sakti-sidebar-collapsed') === 'true');
   }, []);
@@ -163,7 +181,7 @@ export default function AppShell({children}:{children:React.ReactNode}) {
   }
 
   return (
-    <div className={`app-shell scene-${scene}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`} data-workspace-shell data-scene={scene}>
+    <div className={`app-shell scene-${scene}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`} data-workspace-shell data-scene={scene} onClickCapture={beginLinkTransition}>
       <a className="skip-link" href="#main">Skip to content</a>
       <DepthCardController />
       <PersistentWorkspaceVisual />
@@ -178,7 +196,7 @@ export default function AppShell({children}:{children:React.ReactNode}) {
           user={user}
         />
 
-        <main id="main"><motion.div className="workspace-stage" key={pathname} initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{duration:reduceMotion ? 0 : .18,ease:'easeOut'}}>{children}</motion.div></main>
+        <main id="main"><motion.div className="workspace-stage" key={pathname} initial={{opacity:0,y:6,scale:.995}} animate={{opacity:1,y:0,scale:1}} transition={{duration:reduceMotion ? 0 : .18,ease:'easeOut'}}>{children}</motion.div></main>
 
         <footer className="workspace-footer">
           IP-SAKTI Intelligence <span>Screening scores are not legal conclusions or probabilities of patent grant.</span>

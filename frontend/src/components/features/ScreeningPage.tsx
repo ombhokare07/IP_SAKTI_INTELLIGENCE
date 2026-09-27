@@ -3,7 +3,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowUpRight, BookOpenCheck, Check, FileText, Headphones, LoaderCircle, Mic, Save, Search, ShieldAlert, Sparkles } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
 import ChatBox from '@/components/ChatBox';
 import ResultView, { Notice } from '@/components/ResultView';
 import { ErrorState, PageHeader } from '@/components/ui/WorkspaceUI';
@@ -65,7 +64,6 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
   const inventionFlow = page === 'patentability' || page === 'prior-art' || page === 'tk-risk';
   const complianceFlow = page === 'document-checker' || page === 'compliance-journey';
   const documents = useResource<DocumentsResponse>('/documents', complianceFlow);
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     setValues((current) => ({
@@ -188,7 +186,7 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
   const priorArtResult = result as PriorArtSearchResult | null;
   const partialSearch = page === 'prior-art' && priorArtResult?.search_summary?.search_status === 'partial';
 
-  return <motion.div className="feature-page" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .18 }}>
+  return <div className="feature-page">
     <PageHeader page={page} description={cfg.description} />
     {page === 'ask' && <div className="ask-capabilities" aria-label="Question capabilities"><span><Search size={14} />Grounded search</span><span><BookOpenCheck size={14} />Citations</span><span><Mic size={14} />Voice upload</span><span><Sparkles size={14} />Responsible routing</span></div>}
 
@@ -222,5 +220,5 @@ export default function ScreeningPage({ page }: { page: ScreeningPageName }) {
 
     {result && <section className="panel result-panel" aria-live="polite"><div className="result-toolbar"><div><span className="eyebrow">SCREENING OUTPUT</span><strong>Result and supporting evidence</strong></div><div className="inline-actions"><button className="button secondary small" type="button" onClick={save} disabled={saving}><Save size={15} />{saving ? 'Saving…' : 'Save report'}</button>{page === 'ask' && <button className="button ghost small" type="button" onClick={speak}><Headphones size={15} />Listen</button>}</div></div>{message && <Notice>{message} {message.startsWith('Report saved') && <Link href="/reports">Open reports <ArrowUpRight size={13} /></Link>}</Notice>}<ResultView result={result} /></section>}
     {!result && !busy && <section className="result-placeholder"><FileText size={22} /><div><strong>No assessment has run yet.</strong><p>Complete the form above. Results will preserve source coverage, evidence gaps and limitations.</p></div></section>}
-  </motion.div>;
+  </div>;
 }

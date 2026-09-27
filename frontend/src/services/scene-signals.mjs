@@ -1,5 +1,72 @@
 export const SCENE_PHASES = ['idle', 'input', 'submitting', 'processing', 'success', 'partial', 'error'];
 
+export const WORKSPACE_ROUTE_GROUPS = /** @type {const} */ ([
+  ['INTELLIGENCE', ['dashboard', 'ask']],
+  ['IP ANALYSIS', ['patentability', 'prior-art', 'tk-risk']],
+  ['REGULATION', ['regulation-compare', 'document-checker', 'regulation-changes', 'compliance-journey', 'regulatory-alerts']],
+  ['WORKSPACE', ['knowledge-library', 'reports', 'settings']],
+]);
+
+export const WORKSPACE_ROUTE_ORDER = WORKSPACE_ROUTE_GROUPS.flatMap(([, routes]) => routes);
+
+const WORKSPACE_ROUTE_SET = new Set(WORKSPACE_ROUTE_ORDER);
+
+export function normalizeSceneRoute(value) {
+  if (typeof value !== 'string') return '';
+  const route = value.split('?')[0].split('#')[0].split('/').filter(Boolean)[0] || '';
+  return WORKSPACE_ROUTE_SET.has(route) ? route : '';
+}
+
+export function sceneTransitionDirection(fromRoute, toRoute) {
+  const from = WORKSPACE_ROUTE_ORDER.indexOf(normalizeSceneRoute(fromRoute));
+  const to = WORKSPACE_ROUTE_ORDER.indexOf(normalizeSceneRoute(toRoute));
+  if (from < 0 || to < 0 || from === to) return 0;
+  return to > from ? 1 : -1;
+}
+
+export function createSceneTransitionState(route = '') {
+  const normalized = normalizeSceneRoute(route);
+  return {
+    route: normalized,
+    fromRoute: normalized,
+    toRoute: normalized,
+    transitionStartedAt: 0,
+    direction: 0,
+    transitionRevision: 0,
+  };
+}
+
+export function reduceSceneTransition(state, toRoute, at, confirmation = false) {
+  const target = normalizeSceneRoute(toRoute);
+  if (!target) return state;
+
+  if (!state.route) {
+    return { ...state, route: target, fromRoute: target, toRoute: target, transitionStartedAt: 0, direction: 0 };
+  }
+
+  if (confirmation && state.toRoute === target) {
+    return state.route === target ? state : { ...state, route: target };
+  }
+
+  // A superseded Next navigation can confirm after a newer click. Keep the
+  // latest target authoritative instead of briefly queueing the stale route.
+  if (confirmation && state.toRoute && state.toRoute !== state.route && state.toRoute !== target) return state;
+
+  if (!confirmation && (state.toRoute || state.route) === target) return state;
+  if (confirmation && state.route === target) return state;
+
+  const fromRoute = state.route;
+  return {
+    ...state,
+    route: confirmation ? target : state.route,
+    fromRoute,
+    toRoute: target,
+    transitionStartedAt: at,
+    direction: sceneTransitionDirection(fromRoute, target),
+    transitionRevision: state.transitionRevision + 1,
+  };
+}
+
 export function normalizeSceneCount(value, cap = 15) {
   if (value === null || value === undefined || value === '') return undefined;
   const numeric = typeof value === 'number' ? value : Number(value);
@@ -29,7 +96,7 @@ export function normalizeRiskTone(value) {
 }
 
 const signal = {
-  route: 'dashboard',
+  ...createSceneTransitionState(),
   phase: 'idle',
   phaseStartedAt: 0,
   pulseAt: 0,
@@ -53,8 +120,11 @@ export function getSceneSignal() {
 }
 
 export function setSceneRoute(route) {
-  if (!route || signal.route === route) return;
-  signal.route = route;
+  const transition = reduceSceneTransition(signal, route, now(), true);
+  if (transition === signal) return;
+  const routeChanged = signal.route !== transition.route;
+  Object.assign(signal, transition);
+  if (!routeChanged) return;
   signal.phase = 'idle';
   signal.phaseStartedAt = now();
   signal.nodeCount = undefined;
@@ -65,6 +135,13 @@ export function setSceneRoute(route) {
   signal.providerTone = 'neutral';
   signal.riskTone = undefined;
   signal.documentSelected = false;
+}
+
+export function beginSceneTransition(toRoute) {
+  const transition = reduceSceneTransition(signal, toRoute, now(), false);
+  if (transition === signal) return false;
+  Object.assign(signal, transition);
+  return true;
 }
 
 export function setScenePhase(phase, pulseKind = phase) {

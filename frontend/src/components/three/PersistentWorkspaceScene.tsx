@@ -10,6 +10,14 @@ const MAX_POINTS = 88;
 const MAX_LINES = 28;
 const MAX_NODES = 15;
 const MAX_PLANES = 10;
+const FULL_TRANSITION_MS = 640;
+const COMPACT_TRANSITION_MS = 380;
+
+function clamp01(value: number) { return Math.max(0, Math.min(1, value)); }
+function smoothProgress(value: number) {
+  const clamped = clamp01(value);
+  return clamped * clamped * (3 - 2 * clamped);
+}
 
 type SceneConfig = {
   primary: string; secondary: string; accent: string; count: number; spread: number;
@@ -58,7 +66,7 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
   const coreMaterial = useRef<THREE.MeshBasicMaterial>(null); const innerMaterial = useRef<THREE.MeshStandardMaterial>(null); const wireMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const ringMaterialA = useRef<THREE.MeshBasicMaterial>(null); const ringMaterialB = useRef<THREE.MeshBasicMaterial>(null); const ringMaterialC = useRef<THREE.MeshBasicMaterial>(null);
   const pointMaterial = useRef<THREE.PointsMaterial>(null); const lineMaterial = useRef<THREE.LineBasicMaterial>(null);
-  const planeMaterial = useRef<THREE.MeshBasicMaterial>(null);
+  const nodeMaterial = useRef<THREE.MeshBasicMaterial>(null); const planeMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const pointsGeometry = useRef<THREE.BufferGeometry>(null); const linesGeometry = useRef<THREE.BufferGeometry>(null);
   const nodes = useRef<THREE.InstancedMesh>(null); const planes = useRef<THREE.InstancedMesh>(null);
   const activityA = useRef<THREE.Mesh>(null); const activityB = useRef<THREE.Mesh>(null); const keyLight = useRef<THREE.DirectionalLight>(null);
@@ -67,19 +75,38 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
   const currentPoints = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
   const displayPoints = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
   const targetPoints = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
+  const transitionOriginPoints = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
+  const transitionTargetPoints = useMemo(() => new Float32Array(MAX_POINTS * 3), []);
   const linePositions = useMemo(() => new Float32Array(MAX_LINES * 2 * 3), []);
+  const nodeCurrentPositions = useMemo(() => new Float32Array(MAX_NODES * 3), []);
+  const nodeOriginPositions = useMemo(() => new Float32Array(MAX_NODES * 3), []);
+  const nodeCurrentScales = useMemo(() => new Float32Array(MAX_NODES), []);
+  const nodeOriginScales = useMemo(() => new Float32Array(MAX_NODES), []);
+  const nodeCurrentColors = useMemo(() => new Float32Array(MAX_NODES * 3), []);
+  const nodeOriginColors = useMemo(() => new Float32Array(MAX_NODES * 3), []);
+  const planeCurrentPositions = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
+  const planeOriginPositions = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
+  const planeCurrentRotations = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
+  const planeOriginRotations = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
+  const planeCurrentScales = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
+  const planeOriginScales = useMemo(() => new Float32Array(MAX_PLANES * 3), []);
   const phases = useMemo(() => Float32Array.from({ length: MAX_POINTS }, (_, index) => index * 1.713 + .4), []);
   const speeds = useMemo(() => Float32Array.from({ length: MAX_POINTS }, (_, index) => .32 + (index % 9) * .027), []);
   const amplitudes = useMemo(() => Float32Array.from({ length: MAX_POINTS }, (_, index) => .012 + (index % 7) * .003), []);
   const config = SCENES[scene];
-  const targetPrimary = useMemo(() => new THREE.Color(config.primary), [config.primary]);
-  const targetSecondary = useMemo(() => new THREE.Color(config.secondary), [config.secondary]);
-  const targetAccent = useMemo(() => new THREE.Color(config.accent), [config.accent]);
+  const targetPrimary = useMemo(() => new THREE.Color(config.primary), []);
+  const targetSecondary = useMemo(() => new THREE.Color(config.secondary), []);
+  const targetAccent = useMemo(() => new THREE.Color(config.accent), []);
   const errorColor = useMemo(() => new THREE.Color('#fb7185'), []);
   const warningColor = useMemo(() => new THREE.Color('#fbbf24'), []);
   const readyColor = useMemo(() => new THREE.Color('#34d399'), []);
   const neutralColor = useMemo(() => new THREE.Color('#496078'), []);
-  const dummy = useMemo(() => new THREE.Object3D(), []); const lookTarget = useMemo(() => new THREE.Vector3(), []);
+  const dummy = useMemo(() => new THREE.Object3D(), []); const lookTarget = useMemo(() => new THREE.Vector3(), []); const instanceColor = useMemo(() => new THREE.Color(), []);
+  const lastTransitionRevision = useRef(0);
+  const transitionScene = useRef<WorkspaceSceneKey>(scene);
+  const transitionConfig = useRef<SceneConfig>(config);
+  const nodeDisplayedCount = useRef(0); const nodeOriginCount = useRef(0);
+  const planeDisplayedCount = useRef(0); const planeOriginCount = useRef(0);
 
   useEffect(() => {
     const move = (event: PointerEvent) => { pointer.current.x = event.clientX / window.innerWidth - .5; pointer.current.y = event.clientY / window.innerHeight - .5; };
@@ -89,40 +116,93 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
 
   useEffect(() => {
     for (let index = 0; index < MAX_POINTS; index += 1) pointFor(scene, index, config.count, config.spread, targetPoints);
+    const signal = getSceneSignal();
+    const supersededConfirmation = signal.toRoute && signal.toRoute !== signal.route && signal.toRoute !== scene;
+    if (!supersededConfirmation) {
+      transitionScene.current = scene;
+      transitionConfig.current = config;
+      targetPrimary.set(config.primary); targetSecondary.set(config.secondary); targetAccent.set(config.accent);
+    }
     pointsGeometry.current?.setDrawRange(0, compact ? Math.min(config.count, 46) : config.count);
     linesGeometry.current?.setDrawRange(0, Math.min(MAX_LINES, Math.max(10, Math.floor(config.count * .38))) * 2);
     invalidate();
-  }, [compact, config, invalidate, scene, targetPoints]);
+  }, [compact, config, invalidate, scene, targetAccent, targetPoints, targetPrimary, targetSecondary]);
 
   useFrame((state, delta) => {
     if (!active || !group.current) return;
-    const signal = getSceneSignal(); const time = state.clock.elapsedTime;
+    const signal = getSceneSignal(); const time = state.clock.elapsedTime; const timestamp = performance.now();
     const smoothing = 1 - Math.exp(-delta * 4.8); const motionStrength = compact ? .55 : 1;
     const processing = signal.phase === 'submitting' || signal.phase === 'processing';
     const hoverEnergy = signal.hover ? .32 : 0;
     const phaseEnergy = processing ? 1 : signal.phase === 'error' ? .7 : signal.phase === 'success' ? .55 : .2;
-    const pulseAge = signal.pulseAt ? (performance.now() - signal.pulseAt) / 1000 : 99;
+    const pulseAge = signal.pulseAt ? (timestamp - signal.pulseAt) / 1000 : 99;
     const pulse = pulseAge < 1.25 ? Math.sin(Math.min(1, pulseAge / 1.25) * Math.PI) : 0;
+
+    if (signal.transitionRevision !== lastTransitionRevision.current) {
+      const requestedScene = signal.toRoute as WorkspaceSceneKey;
+      const nextScene = SCENES[requestedScene] ? requestedScene : scene;
+      const nextConfig = SCENES[nextScene];
+      transitionOriginPoints.set(displayPoints);
+      nodeOriginPositions.set(nodeCurrentPositions); nodeOriginScales.set(nodeCurrentScales); nodeOriginColors.set(nodeCurrentColors); nodeOriginCount.current = nodeDisplayedCount.current;
+      planeOriginPositions.set(planeCurrentPositions); planeOriginRotations.set(planeCurrentRotations); planeOriginScales.set(planeCurrentScales); planeOriginCount.current = planeDisplayedCount.current;
+      for (let index = 0; index < MAX_POINTS; index += 1) pointFor(nextScene, index, nextConfig.count, nextConfig.spread, transitionTargetPoints);
+      transitionScene.current = nextScene;
+      transitionConfig.current = nextConfig;
+      targetPrimary.set(nextConfig.primary); targetSecondary.set(nextConfig.secondary); targetAccent.set(nextConfig.accent);
+      lastTransitionRevision.current = signal.transitionRevision;
+    }
+
+    const transitionDuration = compact ? COMPACT_TRANSITION_MS : FULL_TRANSITION_MS;
+    const transitionAge = signal.transitionStartedAt ? timestamp - signal.transitionStartedAt : transitionDuration;
+    const transitionProgress = clamp01(transitionAge / transitionDuration);
+    const transitioning = signal.transitionStartedAt > 0 && transitionAge >= 0 && transitionProgress < 1;
+    const departure = transitioning ? smoothProgress(transitionProgress / .22) : 0;
+    const travelProgress = transitioning ? smoothProgress((transitionProgress - .08) / .84) : 1;
+    const assembly = transitioning ? smoothProgress((transitionProgress - .34) / .63) : 1;
+    const ringFlow = transitioning ? Math.sin(Math.PI * clamp01((transitionProgress - .1) / .78)) : 0;
+    const transitionDirection = signal.direction || 1;
+    const activeScene = transitioning ? transitionScene.current : scene;
+    const activeConfig = transitioning ? transitionConfig.current : config;
 
     for (let index = 0; index < MAX_POINTS; index += 1) {
       const base = index * 3;
-      currentPoints[base] = THREE.MathUtils.lerp(currentPoints[base], targetPoints[base], smoothing);
-      currentPoints[base + 1] = THREE.MathUtils.lerp(currentPoints[base + 1], targetPoints[base + 1], smoothing);
-      currentPoints[base + 2] = THREE.MathUtils.lerp(currentPoints[base + 2], targetPoints[base + 2], smoothing);
+      if (transitioning) {
+        const outward = 1 + departure * (1 - assembly) * (compact ? .025 : .055);
+        const originX = transitionOriginPoints[base] * outward;
+        const originY = transitionOriginPoints[base + 1] * outward;
+        const originZ = transitionOriginPoints[base + 2] * outward;
+        const angle = phases[index] + transitionDirection * travelProgress * Math.PI * .9;
+        const radius = 1.18 + (index % 7) * .055;
+        const ringX = Math.cos(angle) * radius;
+        const ringY = Math.sin(angle) * radius * .58;
+        const ringZ = Math.sin(angle * 1.7) * .42 + transitionDirection * (.5 - travelProgress) * .32;
+        const ringMix = ringFlow * (compact ? .42 : .82);
+        currentPoints[base] = THREE.MathUtils.lerp(THREE.MathUtils.lerp(originX, transitionTargetPoints[base], travelProgress), ringX, ringMix);
+        currentPoints[base + 1] = THREE.MathUtils.lerp(THREE.MathUtils.lerp(originY, transitionTargetPoints[base + 1], travelProgress), ringY, ringMix);
+        currentPoints[base + 2] = THREE.MathUtils.lerp(THREE.MathUtils.lerp(originZ, transitionTargetPoints[base + 2], travelProgress), ringZ, ringMix);
+      } else {
+        currentPoints[base] = THREE.MathUtils.lerp(currentPoints[base], targetPoints[base], smoothing);
+        currentPoints[base + 1] = THREE.MathUtils.lerp(currentPoints[base + 1], targetPoints[base + 1], smoothing);
+        currentPoints[base + 2] = THREE.MathUtils.lerp(currentPoints[base + 2], targetPoints[base + 2], smoothing);
+      }
       const drift = Math.sin(time * speeds[index] + phases[index]) * amplitudes[index] * motionStrength;
-      const routePulse = (scene === 'ask' || scene === 'prior-art') ? 1 + pulse * .09 : 1;
+      const routePulse = (activeScene === 'ask' || activeScene === 'prior-art') ? 1 + pulse * .09 : 1;
       const convergence = (processing ? .9 : 1) * routePulse;
-      displayPoints[base] = currentPoints[base] * convergence + drift;
-      displayPoints[base + 1] = currentPoints[base + 1] * convergence + Math.cos(time * speeds[index] * .8 + phases[index]) * amplitudes[index] * motionStrength;
-      displayPoints[base + 2] = currentPoints[base + 2] + drift * 1.8;
+      const visualBlend = transitioning ? travelProgress : 1;
+      const transitionConvergence = THREE.MathUtils.lerp(1, convergence, visualBlend);
+      displayPoints[base] = currentPoints[base] * transitionConvergence + drift * visualBlend;
+      displayPoints[base + 1] = currentPoints[base + 1] * transitionConvergence + Math.cos(time * speeds[index] * .8 + phases[index]) * amplitudes[index] * motionStrength * visualBlend;
+      displayPoints[base + 2] = currentPoints[base + 2] + drift * 1.8 * visualBlend;
     }
     const pointAttribute = pointsGeometry.current?.attributes.position as THREE.BufferAttribute | undefined; if (pointAttribute) pointAttribute.needsUpdate = true;
-    const densityCount = signal.density === undefined ? config.count : Math.min(config.count, 18 + signal.density);
+    const fromConfig = SCENES[signal.fromRoute as WorkspaceSceneKey];
+    const availableCount = transitioning && fromConfig ? Math.max(fromConfig.count, activeConfig.count) : activeConfig.count;
+    const densityCount = signal.density === undefined ? availableCount : Math.min(availableCount, 18 + signal.density);
     pointsGeometry.current?.setDrawRange(0, compact ? Math.min(densityCount, 46) : densityCount);
 
-    const lineCount = Math.min(MAX_LINES, Math.max(10, Math.floor(config.count * .38)));
+    const lineCount = Math.min(MAX_LINES, Math.max(10, Math.floor(availableCount * .38)));
     for (let index = 0; index < MAX_LINES; index += 1) {
-      const from = ((index * 3) % config.count) * 3; const to = ((index * 7 + 5) % config.count) * 3; const base = index * 6;
+      const from = ((index * 3) % availableCount) * 3; const to = ((index * 7 + 5) % availableCount) * 3; const base = index * 6;
       linePositions[base] = displayPoints[from]; linePositions[base + 1] = displayPoints[from + 1]; linePositions[base + 2] = displayPoints[from + 2];
       linePositions[base + 3] = displayPoints[to]; linePositions[base + 4] = displayPoints[to + 1]; linePositions[base + 5] = displayPoints[to + 2];
     }
@@ -131,6 +211,7 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
     coreMaterial.current?.color.lerp(signal.phase === 'error' ? errorColor : targetPrimary, smoothing);
     wireMaterial.current?.color.lerp(targetSecondary, smoothing); pointMaterial.current?.color.lerp(targetPrimary, smoothing);
     lineMaterial.current?.color.lerp(signal.phase === 'partial' ? targetAccent : targetSecondary, smoothing);
+    if (lineMaterial.current) lineMaterial.current.opacity = .14 + ringFlow * .12;
     if (innerMaterial.current) { innerMaterial.current.color.lerp(targetPrimary, smoothing); innerMaterial.current.emissive.lerp(signal.phase === 'error' ? errorColor : targetSecondary, smoothing); innerMaterial.current.emissiveIntensity = .36 + phaseEnergy * .22 + pulse * .5; }
     const liveAccent = signal.riskTone === 'high' || signal.phase === 'error' || signal.providerTone === 'unavailable'
       ? errorColor
@@ -143,54 +224,117 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
     if (ringMaterialA.current) ringMaterialA.current.opacity = .36 + hoverEnergy;
     if (ringMaterialB.current) ringMaterialB.current.opacity = .28 + hoverEnergy * .55;
 
-    const breath = 1 + Math.sin(time * 1.8) * .035 + pulse * .11;
-    if (core.current) { core.current.scale.x = THREE.MathUtils.lerp(core.current.scale.x, config.core[0] * breath, smoothing); core.current.scale.y = THREE.MathUtils.lerp(core.current.scale.y, config.core[1] * breath, smoothing); core.current.scale.z = THREE.MathUtils.lerp(core.current.scale.z, config.core[2] * breath, smoothing); }
-    if (innerCore.current) innerCore.current.scale.setScalar(.52 + Math.sin(time * 1.45) * .025 + pulse * .08 + (signal.score === undefined ? 0 : signal.score * .035));
+    const transitionContract = 1 - departure * (1 - assembly) * .045;
+    const breath = (1 + Math.sin(time * 1.8) * .035 + pulse * .11) * transitionContract;
+    if (core.current) { core.current.scale.x = THREE.MathUtils.lerp(core.current.scale.x, activeConfig.core[0] * breath, smoothing); core.current.scale.y = THREE.MathUtils.lerp(core.current.scale.y, activeConfig.core[1] * breath, smoothing); core.current.scale.z = THREE.MathUtils.lerp(core.current.scale.z, activeConfig.core[2] * breath, smoothing); }
+    if (innerCore.current) innerCore.current.scale.setScalar((.52 + Math.sin(time * 1.45) * .025 + pulse * .08 + (signal.score === undefined ? 0 : signal.score * .035)) * transitionContract);
 
-    const ringSpeed = processing ? 1.65 : 1;
-    if (ringA.current) { ringA.current.rotation.x = THREE.MathUtils.lerp(ringA.current.rotation.x, config.ringTilt[0] + Math.sin(time * .18) * .12, smoothing); ringA.current.rotation.z += delta * .12 * ringSpeed; }
-    if (ringB.current) { ringB.current.rotation.y = THREE.MathUtils.lerp(ringB.current.rotation.y, config.ringTilt[1], smoothing); ringB.current.rotation.x += delta * .085 * ringSpeed; }
-    if (ringC.current) { ringC.current.rotation.z = THREE.MathUtils.lerp(ringC.current.rotation.z, config.ringTilt[2], smoothing); ringC.current.rotation.y -= delta * .065 * ringSpeed; }
+    const ringSpeed = (processing ? 1.65 : 1) + ringFlow * (compact ? 3.5 : 8);
+    if (ringA.current) { ringA.current.rotation.x = THREE.MathUtils.lerp(ringA.current.rotation.x, activeConfig.ringTilt[0] + Math.sin(time * .18) * .12, smoothing); ringA.current.rotation.z += delta * .12 * ringSpeed * transitionDirection; }
+    if (ringB.current) { ringB.current.rotation.y = THREE.MathUtils.lerp(ringB.current.rotation.y, activeConfig.ringTilt[1], smoothing); ringB.current.rotation.x += delta * .085 * ringSpeed * transitionDirection; }
+    if (ringC.current) { ringC.current.rotation.z = THREE.MathUtils.lerp(ringC.current.rotation.z, activeConfig.ringTilt[2], smoothing); ringC.current.rotation.y -= delta * .065 * ringSpeed * transitionDirection; }
 
     const realNodes = signal.nodeCount === undefined ? 0 : signal.nodeCount;
-    const selectedConceptualNodes = scene === 'regulation-compare' ? signal.jurisdictions.length : 0;
-    const nodeCount = compact ? Math.min(8, Math.max(config.conceptualNodes, realNodes)) : Math.min(MAX_NODES, Math.max(config.conceptualNodes, realNodes));
+    const selectedConceptualNodes = activeScene === 'regulation-compare' ? signal.jurisdictions.length : 0;
+    const destinationNodeCount = compact ? Math.min(8, Math.max(activeConfig.conceptualNodes, realNodes)) : Math.min(MAX_NODES, Math.max(activeConfig.conceptualNodes, realNodes));
+    const nodeCount = transitioning ? Math.max(nodeOriginCount.current, destinationNodeCount) : destinationNodeCount;
     if (nodes.current) {
       nodes.current.count = nodeCount;
       for (let index = 0; index < nodeCount; index += 1) {
-        const source = ((index * 7 + 3) % config.count) * 3; dummy.position.set(displayPoints[source], displayPoints[source + 1], displayPoints[source + 2]);
-        const activeNode = index < realNodes || index < selectedConceptualNodes;
-        const size = (activeNode ? .068 : .045) * (1 + Math.sin(time * 1.2 + index) * .1 + pulse * .25 + (signal.score === undefined ? 0 : signal.score * .08));
-        dummy.scale.setScalar(size); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); nodes.current.setMatrixAt(index, dummy.matrix);
-        nodes.current.setColorAt(index, activeNode ? liveAccent : neutralColor);
+        const base = index * 3;
+        const hasOrigin = transitioning && index < nodeOriginCount.current;
+        const hasDestination = index < destinationNodeCount;
+        const source = ((index * 7 + 3) % activeConfig.count) * 3;
+        const destinationX = hasDestination ? displayPoints[source] : nodeOriginPositions[base];
+        const destinationY = hasDestination ? displayPoints[source + 1] : nodeOriginPositions[base + 1];
+        const destinationZ = hasDestination ? displayPoints[source + 2] : nodeOriginPositions[base + 2];
+        const originX = hasOrigin ? nodeOriginPositions[base] : destinationX;
+        const originY = hasOrigin ? nodeOriginPositions[base + 1] : destinationY;
+        const originZ = hasOrigin ? nodeOriginPositions[base + 2] : destinationZ;
+        const activeNode = hasDestination && (index < realNodes || index < selectedConceptualNodes);
+        const destinationSize = hasDestination ? (activeNode ? .068 : .045) * (1 + Math.sin(time * 1.2 + index) * .1 + pulse * .25 + (signal.score === undefined ? 0 : signal.score * .08)) : 0;
+        const originSize = hasOrigin ? nodeOriginScales[index] : 0;
+        const instanceProgress = transitioning ? assembly : 1;
+        const x = THREE.MathUtils.lerp(originX, destinationX, instanceProgress);
+        const y = THREE.MathUtils.lerp(originY, destinationY, instanceProgress);
+        const z = THREE.MathUtils.lerp(originZ, destinationZ, instanceProgress);
+        const size = THREE.MathUtils.lerp(originSize, destinationSize, instanceProgress);
+        const destinationColor = activeNode ? liveAccent : neutralColor;
+        const originR = hasOrigin ? nodeOriginColors[base] : destinationColor.r;
+        const originG = hasOrigin ? nodeOriginColors[base + 1] : destinationColor.g;
+        const originB = hasOrigin ? nodeOriginColors[base + 2] : destinationColor.b;
+        const colorR = THREE.MathUtils.lerp(originR, destinationColor.r, instanceProgress);
+        const colorG = THREE.MathUtils.lerp(originG, destinationColor.g, instanceProgress);
+        const colorB = THREE.MathUtils.lerp(originB, destinationColor.b, instanceProgress);
+        nodeCurrentPositions[base] = x; nodeCurrentPositions[base + 1] = y; nodeCurrentPositions[base + 2] = z;
+        nodeCurrentScales[index] = size; nodeCurrentColors[base] = colorR; nodeCurrentColors[base + 1] = colorG; nodeCurrentColors[base + 2] = colorB;
+        dummy.position.set(x, y, z); dummy.scale.setScalar(size); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); nodes.current.setMatrixAt(index, dummy.matrix);
+        instanceColor.setRGB(colorR, colorG, colorB); nodes.current.setColorAt(index, instanceColor);
       }
+      nodeDisplayedCount.current = nodeCount;
       nodes.current.instanceMatrix.needsUpdate = true;
       if (nodes.current.instanceColor) nodes.current.instanceColor.needsUpdate = true;
     }
+    if (nodeMaterial.current) nodeMaterial.current.opacity = THREE.MathUtils.lerp(nodeMaterial.current.opacity, .86, smoothing);
 
-    const planeCount = compact ? Math.min(config.planes, 5) : config.planes;
+    const destinationPlaneCount = compact ? Math.min(activeConfig.planes, 5) : activeConfig.planes;
+    const planeCount = transitioning ? Math.max(planeOriginCount.current, destinationPlaneCount) : destinationPlaneCount;
     if (planes.current) {
       planes.current.count = planeCount;
       for (let index = 0; index < planeCount; index += 1) {
-        const botanical = scene === 'tk-risk'; const scan = (scene === 'document-checker' || scene === 'patentability') && processing ? (time * .32 + index * .12) % 1 : 0;
-        dummy.position.set(1.05 + (index % 3) * .34, -1.25 + Math.floor(index / 3) * .32 + scan * .35, -.68 - index * .04);
-        dummy.rotation.set(botanical ? .18 : -.15, botanical ? .3 : -.42, botanical ? -.55 + index * .36 : -.08 + index * .025);
-        dummy.scale.set(botanical ? .34 : .56, botanical ? .12 : .34, 1); dummy.updateMatrix(); planes.current.setMatrixAt(index, dummy.matrix);
+        const base = index * 3;
+        const hasOrigin = transitioning && index < planeOriginCount.current;
+        const hasDestination = index < destinationPlaneCount;
+        const botanical = activeScene === 'tk-risk'; const scan = (activeScene === 'document-checker' || activeScene === 'patentability') && processing ? (time * .32 + index * .12) % 1 : 0;
+        const destinationX = hasDestination ? 1.05 + (index % 3) * .34 : planeOriginPositions[base];
+        const destinationY = hasDestination ? -1.25 + Math.floor(index / 3) * .32 + scan * .35 : planeOriginPositions[base + 1];
+        const destinationZ = hasDestination ? -.68 - index * .04 : planeOriginPositions[base + 2];
+        const destinationRx = hasDestination ? (botanical ? .18 : -.15) : planeOriginRotations[base];
+        const destinationRy = hasDestination ? (botanical ? .3 : -.42) : planeOriginRotations[base + 1];
+        const destinationRz = hasDestination ? (botanical ? -.55 + index * .36 : -.08 + index * .025) : planeOriginRotations[base + 2];
+        const destinationSx = hasDestination ? (botanical ? .34 : .56) : 0;
+        const destinationSy = hasDestination ? (botanical ? .12 : .34) : 0;
+        const destinationSz = hasDestination ? 1 : 0;
+        const originX = hasOrigin ? planeOriginPositions[base] : destinationX;
+        const originY = hasOrigin ? planeOriginPositions[base + 1] : destinationY;
+        const originZ = hasOrigin ? planeOriginPositions[base + 2] : destinationZ;
+        const originRx = hasOrigin ? planeOriginRotations[base] : destinationRx;
+        const originRy = hasOrigin ? planeOriginRotations[base + 1] : destinationRy;
+        const originRz = hasOrigin ? planeOriginRotations[base + 2] : destinationRz;
+        const originSx = hasOrigin ? planeOriginScales[base] : 0;
+        const originSy = hasOrigin ? planeOriginScales[base + 1] : 0;
+        const originSz = hasOrigin ? planeOriginScales[base + 2] : 0;
+        const instanceProgress = transitioning ? assembly : 1;
+        const x = THREE.MathUtils.lerp(originX, destinationX, instanceProgress);
+        const y = THREE.MathUtils.lerp(originY, destinationY, instanceProgress);
+        const z = THREE.MathUtils.lerp(originZ, destinationZ, instanceProgress);
+        const rx = THREE.MathUtils.lerp(originRx, destinationRx, instanceProgress);
+        const ry = THREE.MathUtils.lerp(originRy, destinationRy, instanceProgress);
+        const rz = THREE.MathUtils.lerp(originRz, destinationRz, instanceProgress);
+        const sx = THREE.MathUtils.lerp(originSx, destinationSx, instanceProgress);
+        const sy = THREE.MathUtils.lerp(originSy, destinationSy, instanceProgress);
+        const sz = THREE.MathUtils.lerp(originSz, destinationSz, instanceProgress);
+        planeCurrentPositions[base] = x; planeCurrentPositions[base + 1] = y; planeCurrentPositions[base + 2] = z;
+        planeCurrentRotations[base] = rx; planeCurrentRotations[base + 1] = ry; planeCurrentRotations[base + 2] = rz;
+        planeCurrentScales[base] = sx; planeCurrentScales[base + 1] = sy; planeCurrentScales[base + 2] = sz;
+        dummy.position.set(x, y, z); dummy.rotation.set(rx, ry, rz); dummy.scale.set(sx, sy, sz); dummy.updateMatrix(); planes.current.setMatrixAt(index, dummy.matrix);
       }
+      planeDisplayedCount.current = planeCount;
       planes.current.instanceMatrix.needsUpdate = true;
     }
-    if (planeMaterial.current) planeMaterial.current.opacity = THREE.MathUtils.lerp(planeMaterial.current.opacity, signal.documentSelected ? .18 : .08, smoothing);
+    if (planeMaterial.current) { planeMaterial.current.color.lerp(targetAccent, smoothing); planeMaterial.current.opacity = THREE.MathUtils.lerp(planeMaterial.current.opacity, signal.documentSelected ? .18 : .08, smoothing); }
 
-    const travel = (time * (processing ? .42 : .22)) % 1;
-    if (activityA.current && lineCount) { activityA.current.visible = processing || pulse > 0; activityA.current.position.set(THREE.MathUtils.lerp(linePositions[0], linePositions[3], travel), THREE.MathUtils.lerp(linePositions[1], linePositions[4], travel), THREE.MathUtils.lerp(linePositions[2], linePositions[5], travel)); }
-    if (activityB.current && lineCount > 5) { const base = 30; const back = 1 - travel; activityB.current.visible = processing || pulse > 0; activityB.current.position.set(THREE.MathUtils.lerp(linePositions[base], linePositions[base + 3], back), THREE.MathUtils.lerp(linePositions[base + 1], linePositions[base + 4], back), THREE.MathUtils.lerp(linePositions[base + 2], linePositions[base + 5], back)); }
+    const travel = transitioning ? travelProgress : (time * (processing ? .42 : .22)) % 1;
+    if (activityA.current && lineCount) { activityA.current.visible = transitioning || processing || pulse > 0; activityA.current.position.set(THREE.MathUtils.lerp(linePositions[0], linePositions[3], travel), THREE.MathUtils.lerp(linePositions[1], linePositions[4], travel), THREE.MathUtils.lerp(linePositions[2], linePositions[5], travel)); }
+    if (activityB.current && lineCount > 5) { const base = 30; const back = 1 - travel; activityB.current.visible = transitioning || processing || pulse > 0; activityB.current.position.set(THREE.MathUtils.lerp(linePositions[base], linePositions[base + 3], back), THREE.MathUtils.lerp(linePositions[base + 1], linePositions[base + 4], back), THREE.MathUtils.lerp(linePositions[base + 2], linePositions[base + 5], back)); }
 
-    group.current.rotation.y += delta * config.rhythm * (processing ? 1.55 : 1);
+    const worldShift = transitioning ? Math.sin(transitionProgress * Math.PI) * transitionDirection : 0;
+    group.current.rotation.y += delta * activeConfig.rhythm * (processing ? 1.55 : 1);
     group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, pointer.current.y * .11, smoothing * .42); group.current.rotation.z = THREE.MathUtils.lerp(group.current.rotation.z, pointer.current.x * -.075, smoothing * .42);
-    group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, config.position[0] + pointer.current.x * .18, smoothing * .46); group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, config.position[1] + pointer.current.y * -.14, smoothing * .46); group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, config.position[2] + pulse * .12, smoothing);
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, config.camera[0] + pointer.current.x * .12, smoothing * .24); camera.position.y = THREE.MathUtils.lerp(camera.position.y, config.camera[1] - pointer.current.y * .08, smoothing * .24); camera.position.z = THREE.MathUtils.lerp(camera.position.z, config.camera[2], smoothing * .3);
-    lookTarget.set(config.position[0] * .16, config.position[1] * .1, 0); camera.lookAt(lookTarget);
-    if (keyLight.current) { keyLight.current.position.x = 3 + pointer.current.x * 1.8; keyLight.current.position.y = 3.5 - pointer.current.y * 1.5; keyLight.current.intensity = .65 + phaseEnergy * .2 + hoverEnergy + pulse * .35; keyLight.current.color.lerp(targetPrimary, smoothing); }
+    group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, activeConfig.position[0] + pointer.current.x * .18 + worldShift * (compact ? .035 : .13), smoothing * .46); group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, activeConfig.position[1] + pointer.current.y * -.14, smoothing * .46); group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, activeConfig.position[2] + pulse * .12 + Math.abs(worldShift) * (compact ? .015 : .08), smoothing);
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, activeConfig.camera[0] + pointer.current.x * .12 + worldShift * (compact ? .02 : .12), smoothing * .24); camera.position.y = THREE.MathUtils.lerp(camera.position.y, activeConfig.camera[1] - pointer.current.y * .08, smoothing * .24); camera.position.z = THREE.MathUtils.lerp(camera.position.z, activeConfig.camera[2] - Math.abs(worldShift) * (compact ? .01 : .08), smoothing * .3);
+    lookTarget.set(activeConfig.position[0] * .16, activeConfig.position[1] * .1, 0); camera.lookAt(lookTarget);
+    if (keyLight.current) { keyLight.current.position.x = 3 + pointer.current.x * 1.8; keyLight.current.position.y = 3.5 - pointer.current.y * 1.5; keyLight.current.intensity = .65 + phaseEnergy * .2 + hoverEnergy + pulse * .35 + ringFlow * .3; keyLight.current.color.lerp(targetPrimary, smoothing); }
   });
 
   return <><ambientLight intensity={.42} /><directionalLight ref={keyLight} position={[3, 3.5, 5]} intensity={.7} color={config.primary} /><group ref={group} position={config.position}>
@@ -202,7 +346,7 @@ function EvidenceField({ scene, active, compact }: { scene: WorkspaceSceneKey; a
     <mesh ref={ringC} rotation={[.55, 0, config.ringTilt[2]]}><torusGeometry args={[2.05, .005, 3, 80]} /><meshBasicMaterial ref={ringMaterialC} color={config.accent} transparent opacity={.18} depthWrite={false} /></mesh>
     <lineSegments><bufferGeometry ref={linesGeometry}><bufferAttribute attach="attributes-position" args={[linePositions, 3]} /></bufferGeometry><lineBasicMaterial ref={lineMaterial} color={config.secondary} transparent opacity={.14} depthWrite={false} /></lineSegments>
     <points><bufferGeometry ref={pointsGeometry}><bufferAttribute attach="attributes-position" args={[displayPoints, 3]} /></bufferGeometry><pointsMaterial ref={pointMaterial} color={config.primary} size={compact ? .026 : .034} transparent opacity={.78} sizeAttenuation depthWrite={false} /></points>
-    <instancedMesh ref={nodes} args={[undefined, undefined, MAX_NODES]}><sphereGeometry args={[1, 8, 8]} /><meshBasicMaterial color={config.accent} transparent opacity={.86} depthWrite={false} /></instancedMesh>
+    <instancedMesh ref={nodes} args={[undefined, undefined, MAX_NODES]}><sphereGeometry args={[1, 8, 8]} /><meshBasicMaterial ref={nodeMaterial} color={config.accent} transparent opacity={.86} depthWrite={false} /></instancedMesh>
     <instancedMesh ref={planes} args={[undefined, undefined, MAX_PLANES]}><planeGeometry args={[1, 1]} /><meshBasicMaterial ref={planeMaterial} color={config.accent} transparent opacity={.08} wireframe depthWrite={false} /></instancedMesh>
     <mesh ref={activityA}><sphereGeometry args={[.045, 8, 8]} /><meshBasicMaterial color={config.primary} transparent opacity={.9} depthWrite={false} /></mesh><mesh ref={activityB}><sphereGeometry args={[.035, 8, 8]} /><meshBasicMaterial color={config.accent} transparent opacity={.82} depthWrite={false} /></mesh>
   </group></>;

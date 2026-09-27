@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { BellRing, BookOpenCheck, LogOut, Menu, Search } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { motion, useReducedMotion } from 'framer-motion';
 import { navigation } from './Sidebar';
 import { API_BASE } from '@/services/api';
 import type { SessionUser } from './AppShell';
@@ -10,6 +11,7 @@ import { summarizeProviders } from '@/services/status.mjs';
 import { useResource } from '@/hooks/useResource';
 import { clearResourceCache } from '@/services/resource-cache';
 import type { WorkspaceStatus } from '@/types/api';
+import { beginSceneTransition, getSceneSignal } from '@/services/scene-signals.mjs';
 
 export default function Navbar({
   toggle,
@@ -26,6 +28,7 @@ export default function Navbar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const current = navigation.find((n) => `/${n[0]}` === pathname)?.[1] || 'Dashboard';
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState('en');
@@ -49,6 +52,7 @@ export default function Navbar({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (query.trim()) {
+      beginSceneTransition('ask');
       router.push(`/ask?question=${encodeURIComponent(query.trim())}`);
     }
   };
@@ -72,7 +76,13 @@ export default function Navbar({
       <div className="breadcrumb">
         <span className="crumb-root">IP-SAKTI</span>
         <span className="crumb-separator">/</span>
-        <strong>{current}</strong>
+        <motion.strong
+          className="breadcrumb-current"
+          key={pathname}
+          initial={reduceMotion ? false : { opacity: 0, x: getSceneSignal().direction * 7 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: reduceMotion ? 0 : .18, ease: 'easeOut' }}
+        >{current}</motion.strong>
       </div>
 
       <form className="global-search" onSubmit={submit}>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   BellRing,
   BookOpen,
@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
+import { WORKSPACE_ROUTE_GROUPS, WORKSPACE_ROUTE_ORDER } from '@/services/scene-signals.mjs';
 
 export const navigation = [
   ['dashboard', 'Dashboard', Gauge],
@@ -34,22 +35,22 @@ export const navigation = [
   ['document-checker', 'Document Compliance', FileCheck2],
   ['regulation-changes', 'Regulation Changes', FileClock],
   ['compliance-journey', 'Compliance Journey', Route],
-  ['knowledge-library', 'Knowledge Library', Library],
   ['regulatory-alerts', 'Regulatory Alerts', BellRing],
+  ['knowledge-library', 'Knowledge Library', Library],
   ['reports', 'Reports', BookOpen],
   ['settings', 'Settings', Settings],
 ] as const;
 
-const groups = [
-  ['INTELLIGENCE', ['dashboard', 'ask']],
-  ['IP ANALYSIS', ['patentability', 'prior-art', 'tk-risk']],
-  ['REGULATION', ['regulation-compare', 'document-checker', 'regulation-changes', 'compliance-journey', 'regulatory-alerts']],
-  ['WORKSPACE', ['knowledge-library', 'reports', 'settings']],
-] as const;
+if (process.env.NODE_ENV !== 'production' && navigation.some(([slug], index) => WORKSPACE_ROUTE_ORDER[index] !== slug)) {
+  throw new Error('Workspace navigation order must match the scene transition order.');
+}
+
+const groups = WORKSPACE_ROUTE_GROUPS;
 
 export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {open: boolean; collapsed: boolean; onClose: () => void; onToggleCollapsed: () => void}) {
   const path = usePathname();
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const sidebarRef = useRef<HTMLElement>(null);
   const isActive = (slug: string) => path === `/${slug}` || (path === '/' && slug === 'dashboard');
 
@@ -108,8 +109,8 @@ export default function Sidebar({open, collapsed, onClose, onToggleCollapsed}: {
           {slugs.map((slug) => {
             const item = navigation.find((entry) => entry[0] === slug)!;
             const Icon = item[2];
-            return <Link key={slug} href={`/${slug}`} prefetch={['dashboard', 'ask', 'patentability', 'prior-art', 'reports'].includes(slug)} onClick={onClose} aria-current={isActive(slug) ? 'page' : undefined} className={isActive(slug) ? 'active' : ''} title={item[1]}>
-              {isActive(slug) && <motion.span className="nav-active-rail" layoutId="workspace-nav-active" transition={{ type: 'spring', stiffness: 440, damping: 38 }} />}
+            return <Link key={slug} href={`/${slug}`} data-route={slug} prefetch={['dashboard', 'ask', 'patentability', 'prior-art', 'reports'].includes(slug)} onClick={onClose} aria-current={isActive(slug) ? 'page' : undefined} className={isActive(slug) ? 'active' : ''} title={item[1]}>
+              {isActive(slug) && <motion.span className="nav-active-rail" layoutId="workspace-nav-active" transition={reduceMotion ? { duration: 0 } : { duration: .22, ease: [.22, 1, .36, 1] }} />}
               <span className="nav-symbol" aria-hidden="true"><Icon size={17}/></span>
               <span>{item[1]}</span>
             </Link>;

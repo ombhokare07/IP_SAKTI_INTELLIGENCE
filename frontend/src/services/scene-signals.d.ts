@@ -2,6 +2,11 @@ export type ScenePhase = 'idle' | 'input' | 'submitting' | 'processing' | 'succe
 export type ProviderTone = 'ready' | 'partial' | 'unavailable' | 'neutral';
 export type SceneSignal = {
   route: string;
+  fromRoute: string;
+  toRoute: string;
+  transitionStartedAt: number;
+  direction: -1 | 0 | 1;
+  transitionRevision: number;
   phase: ScenePhase;
   phaseStartedAt: number;
   pulseAt: number;
@@ -15,6 +20,13 @@ export type SceneSignal = {
   riskTone?: 'low' | 'medium' | 'high';
   documentSelected: boolean;
 };
+export type SceneTransitionState = Pick<SceneSignal, 'route' | 'fromRoute' | 'toRoute' | 'transitionStartedAt' | 'direction' | 'transitionRevision'>;
+export const WORKSPACE_ROUTE_GROUPS: ReadonlyArray<readonly [string, readonly string[]]>;
+export const WORKSPACE_ROUTE_ORDER: readonly string[];
+export function normalizeSceneRoute(value: unknown): string;
+export function sceneTransitionDirection(fromRoute: string, toRoute: string): -1 | 0 | 1;
+export function createSceneTransitionState(route?: string): SceneTransitionState;
+export function reduceSceneTransition(state: SceneTransitionState, toRoute: string, at: number, confirmation?: boolean): SceneTransitionState;
 export function normalizeSceneCount(value: unknown, cap?: number): number | undefined;
 export function normalizeSceneScore(value: unknown): number | undefined;
 export function normalizeJurisdictions(value: unknown): string[];
@@ -22,6 +34,7 @@ export function normalizeProviderTone(value: unknown): ProviderTone;
 export function normalizeRiskTone(value: unknown): 'low' | 'medium' | 'high' | undefined;
 export function getSceneSignal(): SceneSignal;
 export function setSceneRoute(route: string): void;
+export function beginSceneTransition(toRoute: string): boolean;
 export function setScenePhase(phase: ScenePhase, pulseKind?: string): void;
 export function pulseScene(kind?: string): void;
 export function setSceneMetrics(patch: Partial<Pick<SceneSignal, 'nodeCount' | 'density' | 'score' | 'jurisdictions' | 'providerTone' | 'riskTone' | 'documentSelected'>>): void;

@@ -46,6 +46,7 @@ function StaticWorkspaceField({ scene }: { scene: WorkspaceSceneKey }) {
   return <div className="workspace-field-fallback" data-static-scene={scene}>
     <i className="field-core" /><i className="field-orbit field-orbit--a" /><i className="field-orbit field-orbit--b" />
     <i className="field-trace field-trace--a" /><i className="field-trace field-trace--b" />
+    <i className="field-route-sweep" />
   </div>;
 }
 
@@ -74,7 +75,7 @@ export default function PersistentWorkspaceVisual() {
     };
   }, []);
 
-  const fallback = <StaticWorkspaceField scene={scene} />;
+  const fallback = <StaticWorkspaceField key={scene} scene={scene} />;
   return <div className="global-workspace-field" data-global-canvas data-scene={scene} aria-hidden="true">
     {renderMode === 'fallback' ? fallback : (
       <WorkspaceSceneBoundary fallback={fallback}>

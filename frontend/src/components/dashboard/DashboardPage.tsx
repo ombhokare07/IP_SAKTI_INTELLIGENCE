@@ -25,7 +25,7 @@ import { ErrorState, LoadingState, StatusBadge, formatLocalTime } from '@/compon
 import { useResource } from '@/hooks/useResource';
 import { authSessionStatus, countConnectedProviders, describeStatus } from '@/services/status.mjs';
 import { describeMode } from '@/services/protocol.mjs';
-import { setSceneHover, setSceneMetrics, setScenePhase } from '@/services/scene-signals.mjs';
+import { beginSceneTransition, setSceneHover, setSceneMetrics, setScenePhase } from '@/services/scene-signals.mjs';
 import type { ReportsResponse, WorkspaceStatus } from '@/types/api';
 
 const capabilities = [
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (question.trim()) { setScenePhase('submitting', 'question'); router.push(`/ask?question=${encodeURIComponent(question.trim())}`); }
+    if (question.trim()) { setScenePhase('submitting', 'question'); beginSceneTransition('ask'); router.push(`/ask?question=${encodeURIComponent(question.trim())}`); }
   };
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
     ['Google session', authSessionStatus(status.data)],
   ] as const;
 
-  return <motion.div className="dashboard-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduceMotion ? 0 : .18 }}>
+  return <div className="dashboard-page">
     <section className="dashboard-hero" aria-labelledby="dashboard-title">
       <div className="dashboard-hero__copy">
         <span className="eyebrow">AYUSH / EVIDENCE INTELLIGENCE</span>
@@ -144,5 +144,5 @@ export default function DashboardPage() {
 
     <section className="panel journey-panel" aria-labelledby="journey-title"><div className="section-title"><div><span className="eyebrow">INNOVATION JOURNEY</span><h2 id="journey-title">From insight to responsible review.</h2></div></div><ol>{journey.map(([number, title, copy]) => <li key={number}><span>{number}</span><div><strong>{title}</strong><small>{copy}</small></div></li>)}</ol></section>
     <footer className="dashboard-signoff"><Leaf size={19} /><div><strong>Traditional Wisdom / Smarter Tomorrow.</strong><small>Responsible AI supports — and never replaces — human review.</small></div><Mic2 size={18} /></footer>
-  </motion.div>;
+  </div>;
 }
