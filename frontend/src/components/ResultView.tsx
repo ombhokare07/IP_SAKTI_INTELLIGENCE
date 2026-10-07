@@ -6,6 +6,13 @@ import ConfidenceScore from './ConfidenceScore';
 import RiskMeter from './RiskMeter';
 import ComparisonTable from './ComparisonTable';
 import {describeMode, safeSourceUrl} from '@/services/protocol.mjs';
+import {
+  buildStructuredInspection,
+  buildTechnicalRows,
+  citationDisplayEntries,
+  sanitizeDeveloperPayload,
+  shouldShowDeveloperJson,
+} from '@/services/result-presentation.mjs';
 
 const text = (value: unknown): string => typeof value === 'string' ? value : JSON.stringify(value);
 const human = (value: unknown): string => String(value ?? '').replaceAll('_', ' ');
@@ -170,6 +177,47 @@ function recommendedSteps(data: any, kind: ResultKind): string[] {
   return [];
 }
 
+type InspectionSection = {
+  id: string;
+  title: string;
+  rows: {label: string; value: string}[];
+  items: string[];
+};
+
+function TechnicalDetails({result, data}: {result: any; data: any}) {
+  const rows = buildTechnicalRows(result);
+  const sections: InspectionSection[] = buildStructuredInspection(result, data);
+  const showDeveloperJson = shouldShowDeveloperJson(process.env.NEXT_PUBLIC_SHOW_DEVELOPER_JSON);
+  if (!rows.length && !sections.length && !showDeveloperJson) return null;
+
+  return <details className="technical-details result-section">
+    <summary>Technical details</summary>
+    <div className="technical-details__body">
+      {rows.length > 0 && <div className="technical-status-list" role="list" aria-label="Pipeline status">
+        {rows.map((row: any) => <div className="technical-status-row" role="listitem" key={row.key}>
+          <span>{row.label}</span>
+          <strong className={`status-value status-value--${row.tone}`}>{row.value}</strong>
+        </div>)}
+      </div>}
+      {sections.length > 0 && <details className="structured-inspection">
+        <summary>Structured inspection</summary>
+        <div className="inspection-sections">
+          {sections.map((section) => <section className="inspection-section" key={section.id}>
+            <h4>{section.title}</h4>
+            {section.rows.length > 0 && <dl>{section.rows.map((row) => <div key={`${section.id}-${row.label}`}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl>}
+            {section.items.length > 0 && <ul>{section.items.map((item, index) => <li key={`${section.id}-${index}`}>{item}</li>)}</ul>}
+          </section>)}
+        </div>
+      </details>}
+      {showDeveloperJson && <details className="developer-json">
+        <summary>Developer JSON</summary>
+        <p>Debug view. Secret-like values are redacted.</p>
+        <pre>{JSON.stringify(sanitizeDeveloperPayload(result), null, 2)}</pre>
+      </details>}
+    </div>
+  </details>;
+}
+
 export default function ResultView({result}: {result: any}) {
   if (!result) return <Empty/>;
   const nested = result.routing ? result.results?.[result.routing.primary] : null;
@@ -183,7 +231,7 @@ export default function ResultView({result}: {result: any}) {
   const limitations = uniqueText([result.limitations || [], data.limitations || []]);
   const gaps = importantGaps(data, kind);
   const nextSteps = recommendedSteps(data, kind);
-  const hasTechnicalDetails = result && typeof result === 'object' && Object.keys(result).length > 0;
+  const journeyStepTitles = new Map((Array.isArray(data.steps) ? data.steps : []).map((step: any) => [step.id, step.title]));
 
   return <div className={`result-view result-view--${kind}`}>
     <div className="result-top"><h2>Screening result</h2><span className={`badge${mode === 'mock' ? ' warning' : ''}`}>{describeMode(mode)}</span></div>
@@ -201,22 +249,23 @@ export default function ResultView({result}: {result: any}) {
     {prior && <section className="result-section grouped-result result-records"><div className="section-title"><div><span className="eyebrow">SEARCH OUTPUT</span><h3>Patent and source matches</h3></div><span className="count">{prior.length}</span></div>{!prior.length && <Empty title="No records returned">A search with no results does not establish novelty.</Empty>}{prior.map((item: any, index: number) => <article className="patent-record" key={item.publication_number || index}><div className="row-between"><span className="eyebrow">RANK {item.rank || index + 1} · {item.publication_number || 'Identifier unavailable'}</span><span className="badge">Similarity {item.similarity?.overall_similarity ?? '—'}/100</span></div><h3>{item.title || 'Title unavailable'}</h3><p>{item.abstract || item.relevance_summary || 'Abstract unavailable from this provider.'}</p><div className="meta-row"><span>{item.jurisdiction || 'Jurisdiction unavailable'}</span><span>Published: {item.publication_date || 'Unavailable'}</span>{item.provider && <span>{item.provider}</span>}</div>{item.feature_overlap?.matching_features?.length > 0 && <div className="chips">{item.feature_overlap.matching_features.map((feature: string) => <span className="chip" key={feature}>{feature}</span>)}</div>}{safeSourceUrl(item.source_url) ? <a href={safeSourceUrl(item.source_url)!} target="_blank" rel="noreferrer">Open supplied source <span aria-hidden="true">↗</span></a> : <small>No source URL was supplied. Use the publication identifier to inspect the record.</small>}</article>)}</section>}
 
     {kind === 'tk-risk' && data.search_performed === true && data.matches?.length === 0 && <section className="result-section action-section"><Empty title="No review leads in the configured source">This does not establish absence of traditional knowledge and does not provide TK clearance.</Empty></section>}
-    {data.matches?.length > 0 && <section className="result-section grouped-result"><div className="section-title"><div><span className="eyebrow">OVERLAP REVIEW</span><h3>Traditional knowledge review leads</h3></div><span className="count">{data.matches.length}</span></div>{data.matches.map((match: any, index: number) => <article className="panel inset" key={match.record_id || index}><div className="row-between"><strong>{match.record_id || 'Record identifier unavailable'}</strong><span className="badge">Feature overlap {match.similarity?.score ?? '—'}/100</span></div>{match.similarity?.features && <div className="chips">{Object.values(match.similarity.features).flatMap((feature: any) => feature.matched || []).map((value: any, itemIndex: number) => <span className="chip" key={`${value}-${itemIndex}`}>{value}</span>)}</div>}<CitationCard citation={match.evidence || {}} index={index}/></article>)}</section>}
+    {data.matches?.length > 0 && <section className="result-section grouped-result"><div className="section-title"><div><span className="eyebrow">OVERLAP REVIEW</span><h3>Traditional knowledge review leads</h3></div><span className="count">{data.matches.length}</span></div>{data.matches.map((match: any, index: number) => <article className="panel inset" key={match.record_id || index}><div className="row-between"><strong>Review lead {index + 1}</strong><span className="badge">Feature overlap {match.similarity?.score ?? '—'}/100</span></div>{match.similarity?.features && <div className="chips">{Object.values(match.similarity.features).flatMap((feature: any) => feature.matched || []).map((value: any, itemIndex: number) => <span className="chip" key={`${value}-${itemIndex}`}>{value}</span>)}</div>}<CitationCard citation={match.evidence || {}} index={index}/></article>)}</section>}
     {data.rows && <section className="result-section grouped-result"><div className="section-title"><div><span className="eyebrow">JURISDICTION REVIEW</span><h3>Requirement and evidence status</h3></div></div>{data.coverage && <div className="chips">{Object.entries(data.coverage).map(([jurisdiction, covered]) => <span className={`chip${!covered ? ' warning' : ''}`} key={jurisdiction}>{jurisdiction}: {covered ? 'Stored evidence available' : 'Evidence missing'}</span>)}</div>}<ComparisonTable rows={data.rows} jurisdictions={data.jurisdictions || Object.keys(data.coverage || {})}/></section>}
-    {data.checks && <section className="result-section grouped-result"><div className="section-title"><div><span className="eyebrow">FIELD REVIEW</span><h3>Assessed document fields</h3></div></div>{data.checks.length ? <div className="table-scroll"><table><thead><tr><th>Requirement</th><th>Supplied information</th><th>Screening status</th><th>Evidence</th></tr></thead><tbody>{data.checks.map((check: any, index: number) => <tr key={check.field || check.label || index}><th>{check.label}</th><td>{present(check.supplied_value) ? text(check.supplied_value) : '—'}</td><td><span className={`badge${check.status === 'missing' || check.status === 'rule_mismatch' ? ' warning' : ''}`}>{human(check.status)}</span></td><td>{check.evidence_id || 'Not supplied'}{check.version && <small>{check.version}</small>}</td></tr>)}</tbody></table></div> : <Empty title="No requirements to screen">Supply a current, applicable regulatory corpus. This is not a compliance clearance.</Empty>}</section>}
-    {data.steps && <section className="result-section grouped-result journey-section"><div className="section-title"><div><span className="eyebrow">REVIEW SEQUENCE</span><h3>Your compliance journey</h3></div></div><ol className="journey">{data.steps.map((step: any, index: number) => <li key={step.id || index}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{step.title}</strong><small>{human(step.status)}{step.depends_on?.length ? ` · After: ${step.depends_on.join(', ')}` : ''}</small>{step.evidence_ids?.length > 0 && <p className="muted">Evidence: {step.evidence_ids.join(', ')}</p>}</div></li>)}</ol></section>}
+    {data.checks && <section className="result-section grouped-result"><div className="section-title"><div><span className="eyebrow">FIELD REVIEW</span><h3>Assessed document fields</h3></div></div>{data.checks.length ? <div className="table-scroll"><table><thead><tr><th>Requirement</th><th>Supplied information</th><th>Screening status</th><th>Evidence</th></tr></thead><tbody>{data.checks.map((check: any, index: number) => <tr key={check.field || check.label || index}><th>{check.label}</th><td>{present(check.supplied_value) ? text(check.supplied_value) : '—'}</td><td><span className={`badge${check.status === 'missing' || check.status === 'rule_mismatch' ? ' warning' : ''}`}>{human(check.status)}</span></td><td>{check.evidence_id ? 'Source record linked' : 'Not supplied'}{check.version && <small>Version {check.version}</small>}</td></tr>)}</tbody></table></div> : <Empty title="No requirements to screen">Supply a current, applicable regulatory corpus. This is not a compliance clearance.</Empty>}</section>}
+    {data.steps && <section className="result-section grouped-result journey-section"><div className="section-title"><div><span className="eyebrow">REVIEW SEQUENCE</span><h3>Your compliance journey</h3></div></div><ol className="journey">{data.steps.map((step: any, index: number) => { const dependencies = (step.depends_on || []).map((id: string) => journeyStepTitles.get(id)).filter(Boolean); return <li key={step.id || index}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{step.title}</strong><small>{human(step.status)}{dependencies.length ? ` · After: ${dependencies.join(', ')}` : ''}</small>{step.evidence_ids?.length > 0 && <p className="muted">{step.evidence_ids.length} source record{step.evidence_ids.length === 1 ? '' : 's'} linked</p>}</div></li>; })}</ol></section>}
 
     {result.routing && Object.keys(result.results || {}).length > 1 && <details className="result-section grouped-result"><summary>Additional screening results</summary>{Object.entries(result.results).filter(([name]) => name !== result.routing.primary).map(([name, value]) => <details className="panel inset" key={name}><summary>{human(name)}</summary><ResultView result={value}/></details>)}</details>}
 
     <section className="result-section sources-section"><div className="section-title"><div><span className="eyebrow">SUPPORTING MATERIAL</span><h3>Evidence &amp; sources</h3></div><span className="count">{citations.length} source{citations.length === 1 ? '' : 's'}</span></div>{citations.length > 0 ? <div className="source-grid"><CitationCollection citations={citations}/></div> : <Notice>No source excerpts are available for this result. No definitive conclusion should be drawn.</Notice>}</section>
-    {limitations.length > 0 && <details className="limitations result-section"><summary>Limitations <span className="count">{limitations.length}</span></summary><ul>{limitations.map((value) => <li key={value}>{value}</li>)}</ul></details>}
-    {hasTechnicalDetails && <details className="raw-detail"><summary>Technical details</summary>{result.trace?.length > 0 && <div className="trace">{result.trace.map((trace: any, index: number) => <span key={index}>{human(trace.agent)}<small>{human(trace.status)}</small></span>)}</div>}<details className="structured-response"><summary>View structured response</summary><pre>{JSON.stringify(result, null, 2)}</pre></details></details>}
+    {limitations.length > 0 && <details className="limitations result-section"><summary>Limitations ({limitations.length})</summary><ul>{limitations.map((value) => <li key={value}>{value}</li>)}</ul></details>}
+    <TechnicalDetails result={result} data={data}/>
     <p className="screening-disclaimer">This workspace supports evidence screening. It does not provide legal advice, regulatory clearance or a probability of patent grant.</p>
   </div>;
 }
 
 function CitationCollection({citations}: {citations: any[]}) {
   const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? citations : citations.slice(0, 5);
-  return <>{visible.map((citation, index) => <CitationCard key={citation.citation_id || citation.source_url || `${citation.title || 'source'}-${index}`} citation={citation} index={index}/>)}{citations.length > 5 && <button className="text-button" type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>{expanded ? 'Show top five' : `View all ${citations.length} sources`}</button>}</>;
+  const entries = citationDisplayEntries(citations);
+  const visible = expanded ? entries : entries.slice(0, 5);
+  return <>{visible.map((entry: any, index: number) => <CitationCard key={entry.key} citation={entry.citation} index={index}/>)}{citations.length > 5 && <button className="text-button" type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>{expanded ? 'Show top five' : `View all ${citations.length} sources`}</button>}</>;
 }
